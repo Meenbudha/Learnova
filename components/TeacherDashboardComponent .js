@@ -74,7 +74,10 @@ const TeacherDashboard = () => {
   const [showPasscodeModal, setShowPasscodeModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showAllRequestsModal, setShowAllRequestsModal] = useState(false);
+  const [exceptionRequests, setExceptionRequests] = useState([]);
   const [allRequests, setAllRequests] = useState([]);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(false);
+  const [requestsError, setRequestsError] = useState(null);
 
   // Mock teacher data
   const [teacher] = useState({
@@ -225,27 +228,56 @@ const TeacherDashboard = () => {
     },
   ];
 
-const fetchAllRequests = async () => {
-  try {
-    const token = await user.getIdToken();
-    const response = await fetch("/api/exceptions/all", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (response.ok) {
-      const data = await response.json();
-      setAllRequests(data.exceptions);
-      setShowAllRequestsModal(true);
-    }
-  } catch (error) {
-    console.error("Failed to fetch all exception requests:", error);
-  }
-};
+  const fetchAllRequests = async () => {
+    if (!user) return;
 
-  const [exceptionRequests, setExceptionRequests] = useState([]);
+    setIsLoadingRequests(true);
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch("/api/exceptions/all", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Normalize data structure
+      const normalizedRequests = (data.exceptions || []).map((req) => ({
+        id: req._id || req.id,
+        studentName: req.studentName || req.student || "Unknown Student",
+        studentId: req.studentId || req.rollNo || "",
+        className: req.className || req.class || "",
+        reason: req.reason || "",
+        details: req.details || "",
+        status: req.status || "pending",
+        timestamp: req.createdAt || req.timestamp,
+        currentLocation: req.currentLocation,
+        comments: req.comments || "",
+        reviewedBy: req.reviewedBy || "",
+        reviewedAt: req.reviewedAt || "",
+      }));
+
+      setAllRequests(normalizedRequests);
+      setShowAllRequestsModal(true);
+    } catch (error) {
+      console.error("Failed to fetch all exception requests:", error);
+      setRequestsError(error.message);
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  };
 
   // Fetch exception requests
   useEffect(() => {
     const fetchExceptionRequests = async () => {
+      if (!user) return;
+
+      setIsLoadingRequests(true);
+      setRequestsError(null);
+
       try {
         const token = await user.getIdToken();
         const response = await fetch("/api/exceptions/list", {
@@ -254,21 +286,42 @@ const fetchAllRequests = async () => {
           },
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setExceptionRequests(data.exceptions);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+
+        // Normalize data structure
+        const normalizedRequests = (data.exceptions || []).map((req) => ({
+          id: req._id || req.id,
+          studentName: req.studentName || req.student || "Unknown Student",
+          studentId: req.studentId || req.rollNo || "",
+          className: req.className || req.class || "",
+          reason: req.reason || "",
+          details: req.details || "",
+          status: req.status || "pending",
+          timestamp: req.createdAt || req.timestamp,
+          currentLocation: req.currentLocation,
+          comments: req.comments || "",
+          reviewedBy: req.reviewedBy || "",
+          reviewedAt: req.reviewedAt || "",
+        }));
+
+        setExceptionRequests(normalizedRequests);
       } catch (error) {
         console.error("Failed to fetch exception requests:", error);
+        setRequestsError(error.message);
+      } finally {
+        setIsLoadingRequests(false);
       }
     };
 
-    if (user) {
-      fetchExceptionRequests();
-      // Poll for updates every 30 seconds
-      const interval = setInterval(fetchExceptionRequests, 30000);
-      return () => clearInterval(interval);
-    }
+    fetchExceptionRequests();
+
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchExceptionRequests, 30000);
+    return () => clearInterval(interval);
   }, [user]);
 
   const handleExceptionRequest = async (id, action) => {
@@ -289,13 +342,29 @@ const fetchAllRequests = async () => {
         }),
       });
 
-      if (response.ok) {
-        setExceptionRequests((prev) =>
-          prev.map((req) => (req._id === id ? { ...req, status: action } : req))
-        );
+      if (!response.ok) {
+        throw new Error(`Failed to update request: ${response.status}`);
       }
+
+      // Update local state
+      setExceptionRequests((prev) =>
+        prev.map((req) =>
+          req.id === id
+            ? {
+                ...req,
+                status: action,
+                comments: `${
+                  action === "approved" ? "Approved" : "Rejected"
+                } by teacher`,
+                reviewedAt: new Date().toISOString(),
+                reviewedBy: user.displayName || user.email,
+              }
+            : req
+        )
+      );
     } catch (error) {
       console.error("Failed to update exception request:", error);
+      alert("Failed to update request. Please try again.");
     }
   };
 
@@ -534,7 +603,7 @@ const fetchAllRequests = async () => {
             </div>
           </div>
 
-          {/* Exception Requests - CORRECTED */}
+          {/* Exception Requests */}
           <div className="bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-white">
@@ -543,10 +612,14 @@ const fetchAllRequests = async () => {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={fetchAllRequests}
-                  className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-sm transition-colors flex items-center space-x-2"
+                  disabled={isLoadingRequests}
+                  className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 px-3 py-1 rounded-lg text-sm transition-colors flex items-center space-x-2 disabled:opacity-50"
                 >
                   <FileText className="w-4 h-4" />
                   <span>View All</span>
+                  {isLoadingRequests && (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  )}
                 </button>
                 <span className="bg-red-500/20 text-red-400 px-3 py-1 rounded-full text-sm">
                   {
@@ -559,7 +632,24 @@ const fetchAllRequests = async () => {
             </div>
 
             <div className="space-y-3">
-              {exceptionRequests.length === 0 ? (
+              {isLoadingRequests ? (
+                <div className="text-center py-8">
+                  <RefreshCw className="w-8 h-8 text-gray-600 mx-auto mb-3 animate-spin" />
+                  <p className="text-gray-400">Loading exception requests...</p>
+                </div>
+              ) : requestsError ? (
+                <div className="text-center py-8">
+                  <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+                  <p className="text-red-400 mb-2">Failed to load requests</p>
+                  <p className="text-gray-400 text-sm">{requestsError}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="mt-3 bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm hover:bg-red-500/30 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : exceptionRequests.length === 0 ? (
                 <div className="text-center py-8">
                   <MessageSquare className="w-12 h-12 text-gray-600 mx-auto mb-3" />
                   <p className="text-gray-400">
@@ -569,26 +659,26 @@ const fetchAllRequests = async () => {
               ) : (
                 exceptionRequests.map((request) => (
                   <div
-                    key={request._id || request.id}
+                    key={request.id}
                     className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <div className="text-white font-medium">
-                          {request.studentName || request.student}
+                          {request.studentName}
                         </div>
                         <div className="text-gray-400 text-sm">
-                          {request.studentId || request.rollNo}
+                          {request.studentId}
                         </div>
                       </div>
                       <div className="text-right">
                         <div className="text-white text-sm">
-                          {request.className || request.class}
+                          {request.className}
                         </div>
                         <div className="text-gray-400 text-xs">
-                          {request.createdAt
-                            ? new Date(request.createdAt).toLocaleString()
-                            : request.timestamp}
+                          {request.timestamp
+                            ? new Date(request.timestamp).toLocaleString()
+                            : "No date"}
                         </div>
                       </div>
                     </div>
@@ -600,10 +690,13 @@ const fetchAllRequests = async () => {
                       {request.currentLocation && (
                         <div className="text-sm text-gray-300">
                           <strong>Current Location:</strong>{" "}
-                          {request.currentLocation}
+                          {typeof request.currentLocation === "object"
+                            ? `${
+                                request.currentLocation.distance || "Unknown"
+                              }m from institution`
+                            : request.currentLocation}
                         </div>
                       )}
-
                       {request.details && (
                         <div className="text-sm text-gray-300">
                           <strong>Details:</strong> {request.details}
@@ -611,26 +704,20 @@ const fetchAllRequests = async () => {
                       )}
                     </div>
 
-                    {request.status === "pending" && (
+                    {request.status === "pending" ? (
                       <div className="flex space-x-3">
                         <button
                           onClick={() =>
-                            handleExceptionRequest(
-                              request._id || request.id,
-                              "approved"
-                            )
+                            handleExceptionRequest(request.id, "approved")
                           }
                           className="bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2"
-                          >
+                        >
                           <Check className="w-4 h-4" />
                           <span>Approve</span>
                         </button>
                         <button
                           onClick={() =>
-                            handleExceptionRequest(
-                              request._id || request.id,
-                              "rejected"
-                            )
+                            handleExceptionRequest(request.id, "rejected")
                           }
                           className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 px-4 py-2 rounded-lg text-sm transition-colors flex items-center space-x-2"
                         >
@@ -638,9 +725,7 @@ const fetchAllRequests = async () => {
                           <span>Reject</span>
                         </button>
                       </div>
-                    )}
-
-                    {request.status !== "pending" && (
+                    ) : (
                       <div className="flex items-center justify-between">
                         <div
                           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
@@ -663,133 +748,131 @@ const fetchAllRequests = async () => {
               )}
             </div>
           </div>
-              {/* All Requests Modal */}
-              {showAllRequestsModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                  <div className="bg-gray-900 border border-white/20 rounded-2xl p-6 max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h3 className="text-2xl font-bold text-white mb-1">
-                          All Exception Requests
-                        </h3>
-                        <p className="text-gray-400">
-                          Complete history of student exception requests
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setShowAllRequestsModal(false)}
-                        className="bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600 text-white p-2 rounded-lg transition-colors"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
+          {/* All Requests Modal */}
+          {showAllRequestsModal && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-gray-900 border border-white/20 rounded-2xl p-6 max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-2xl font-bold text-white mb-1">
+                      All Exception Requests
+                    </h3>
+                    <p className="text-gray-400">
+                      Complete history of student exception requests (
+                      {allRequests.length} total)
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowAllRequestsModal(false)}
+                    className="bg-gray-700/50 hover:bg-gray-600/50 border border-gray-600 text-white p-2 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+                  {allRequests.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageSquare className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                      <p className="text-gray-400 text-lg">
+                        No exception requests found
+                      </p>
                     </div>
-
-                    <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-                      {allRequests.length === 0 ? (
-                        <div className="text-center py-12">
-                          <MessageSquare className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                          <p className="text-gray-400 text-lg">
-                            No exception requests found
-                          </p>
-                        </div>
-                      ) : (
-                        allRequests.map((request) => (
-                          <div
-                            key={request._id || request.id}
-                            className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50"
-                          >
-                            <div className="flex items-center justify-between mb-3">
-                              <div>
-                                <div className="text-white font-medium">
-                                  {request.studentName ||
-                                    request.student}
-                                </div>
-                                <div className="text-gray-400 text-sm">
-                                  {request.studentId || request.rollNo}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-white text-sm">
-                                  {request.className || request.class}
-                                </div>
-                                <div className="text-gray-400 text-xs">
-                                  {request.createdAt
-                                    ? new Date(
-                                        request.createdAt
-                                      ).toLocaleString()
-                                    : request.timestamp}
-                                </div>
-                              </div>
+                  ) : (
+                    allRequests.map((request) => (
+                      <div
+                        key={request.id}
+                        className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50"
+                      >
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <div className="text-white font-medium">
+                              {request.studentName}
                             </div>
-
-                            <div className="space-y-2 mb-4">
-                              <div className="text-sm text-gray-300">
-                                <strong>Reason:</strong>{" "}
-                                {request.reason}
-                              </div>
-                              {request.currentLocation && (
-                                <div className="text-sm text-gray-300">
-                                  <strong>Current Location:</strong>{" "}
-                                  {request.currentLocation}
-                                </div>
-                              )}
-                              {request.details && (
-                                <div className="text-sm text-gray-300">
-                                  <strong>Details:</strong>{" "}
-                                  {request.details}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex items-center justify-between">
-                              <div
-                                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                                  request.status === "approved"
-                                    ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                                    : request.status === "rejected"
-                                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                    : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
-                                }`}
-                              >
-                                {request.status?.toUpperCase() ||
-                                  "PENDING"}
-                              </div>
-                              <div className="text-right">
-                                {request.reviewedBy && (
-                                  <div className="text-xs text-gray-400 mb-1">
-                                    Reviewed by: {request.reviewedBy}
-                                  </div>
-                                )}
-                                {request.reviewedAt && (
-                                  <div className="text-xs text-gray-400">
-                                    {new Date(
-                                      request.reviewedAt
-                                    ).toLocaleString()}
-                                  </div>
-                                )}
-                                {request.comments && (
-                                  <div className="text-xs text-gray-300 mt-1 italic">
-                                    "{request.comments}"
-                                  </div>
-                                )}
-                              </div>
+                            <div className="text-gray-400 text-sm">
+                              {request.studentId}
                             </div>
                           </div>
-                        ))
-                      )}
-                    </div>
+                          <div className="text-right">
+                            <div className="text-white text-sm">
+                              {request.className}
+                            </div>
+                            <div className="text-gray-400 text-xs">
+                              {request.timestamp
+                                ? new Date(request.timestamp).toLocaleString()
+                                : "No date"}
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="mt-6 flex justify-center">
-                      <button
-                        onClick={() => setShowAllRequestsModal(false)}
-                        className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-medium transition-colors"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </div>
+                        <div className="space-y-2 mb-4">
+                          <div className="text-sm text-gray-300">
+                            <strong>Reason:</strong> {request.reason}
+                          </div>
+                          {request.currentLocation && (
+                            <div className="text-sm text-gray-300">
+                              <strong>Current Location:</strong>{" "}
+                              {typeof request.currentLocation === "object"
+                                ? `${
+                                    request.currentLocation.distance ||
+                                    "Unknown"
+                                  }m from institution`
+                                : request.currentLocation}
+                            </div>
+                          )}
+                          {request.details && (
+                            <div className="text-sm text-gray-300">
+                              <strong>Details:</strong> {request.details}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                              request.status === "approved"
+                                ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                                : request.status === "rejected"
+                                ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                : "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
+                            }`}
+                          >
+                            {request.status?.toUpperCase() || "PENDING"}
+                          </div>
+                          <div className="text-right">
+                            {request.reviewedBy && (
+                              <div className="text-xs text-gray-400 mb-1">
+                                Reviewed by: {request.reviewedBy}
+                              </div>
+                            )}
+                            {request.reviewedAt && (
+                              <div className="text-xs text-gray-400">
+                                {new Date(request.reviewedAt).toLocaleString()}
+                              </div>
+                            )}
+                            {request.comments && (
+                              <div className="text-xs text-gray-300 mt-1 italic">
+                                "{request.comments}"
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-              )}
+
+                <div className="mt-6 flex justify-center">
+                  <button
+                    onClick={() => setShowAllRequestsModal(false)}
+                    className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-3 rounded-xl font-medium transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {/* Sidebar */}
         <div className="space-y-8">

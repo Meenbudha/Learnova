@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { AlertCircle, MapPin } from "lucide-react";
-import { db } from "@/lib/firebaseConfig"; // Your Firebase config
+import { AlertCircle, MapPin, RefreshCw } from "lucide-react";
+import { db } from "@/lib/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 
 const AttendanceValidation = ({ onValidationSuccess }) => {
@@ -18,6 +18,21 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
   const [settingsLoading, setSettingsLoading] = useState(true);
   const router = useRouter();
   const { user } = useAuth();
+
+  // Exception modal states
+  const [showExceptionModal, setShowExceptionModal] = useState(false);
+  const [exceptionForm, setExceptionForm] = useState({
+    reason: "",
+    details: "",
+    studentId: "",
+    studentName: "",
+    currentLocation: null,
+  });
+
+  // NEW: One-time location check states
+  const [oneTimeLocationSaved, setOneTimeLocationSaved] = useState(false);
+  const [isOneTimeLocationLoading, setIsOneTimeLocationLoading] =
+    useState(false);
 
   // Load settings from Firestore
   useEffect(() => {
@@ -45,7 +60,6 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
 
   const checkTimeValidity = (timeWindow) => {
     if (!timeWindow) return;
-
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5);
     const isValidTime =
@@ -54,7 +68,7 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371e3; // Earth's radius in meters
+    const R = 6371e3;
     const φ1 = (lat1 * Math.PI) / 180;
     const φ2 = (lat2 * Math.PI) / 180;
     const Δφ = ((lat2 - lat1) * Math.PI) / 180;
@@ -76,7 +90,6 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
       if (!navigator.geolocation) {
         throw new Error("Geolocation is not supported by this browser");
       }
-
       if (!settings) {
         throw new Error("Settings not loaded");
       }
@@ -139,9 +152,60 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
     }
   };
 
+  // NEW: One-time location check function for exception modal
+  const handleOneTimeLocationCheck = async () => {
+    setIsOneTimeLocationLoading(true);
+
+    try {
+      if (!navigator.geolocation) {
+        throw new Error("Geolocation is not supported by this browser");
+      }
+
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
+      });
+
+      const userLat = position.coords.latitude;
+      const userLng = position.coords.longitude;
+      const distance = calculateDistance(
+        userLat,
+        userLng,
+        settings.gpsLocation.lat,
+        settings.gpsLocation.lng
+      );
+
+      const locationData = {
+        lat: userLat,
+        lng: userLng,
+        distance: Math.round(distance),
+        isValid: distance <= settings.gpsLocation.radius,
+        timestamp: new Date().toISOString(),
+      };
+
+      // Update exception form with new location data
+      setExceptionForm((prev) => ({
+        ...prev,
+        currentLocation: locationData,
+      }));
+
+      setOneTimeLocationSaved(true);
+      alert(
+        `Location saved! You are ${Math.round(distance)}m from the institution.`
+      );
+    } catch (error) {
+      console.error("One-time location error:", error);
+      alert("Unable to get location. Please try again.");
+    } finally {
+      setIsOneTimeLocationLoading(false);
+    }
+  };
+
   const validatePasscode = () => {
     if (!settings) return;
-
     if (passcode === settings.passcode) {
       setPasscodeError("");
       setCurrentStep(3);
@@ -156,17 +220,7 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
     onValidationSuccess();
   };
 
-  const [showExceptionModal, setShowExceptionModal] = useState(false);
-  const [exceptionForm, setExceptionForm] = useState({
-    reason: "",
-    details: "",
-    studentId: "",
-    studentName: "",
-    currentLocation: null,
-  });
-
   const submitExceptionRequest = () => {
-    // Populate student details from user context
     setExceptionForm((prev) => ({
       ...prev,
       studentId: user?.email || "",
@@ -191,7 +245,7 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
         reason: exceptionForm.reason,
         details: exceptionForm.details,
         currentLocation: exceptionForm.currentLocation,
-        className: "Current Class", // You might want to get this dynamically
+        className: "Current Class",
         timestamp: new Date().toISOString(),
         status: "pending",
         type: !timeValid ? "time_window" : "location",
@@ -200,6 +254,7 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
           locationRequired: settings?.gpsLocation,
           attemptedAt: new Date().toISOString(),
         },
+        oneTimeLocationUsed: oneTimeLocationSaved, // NEW: Track if one-time location was used
       };
 
       const response = await fetch("/api/exceptions/create", {
@@ -213,6 +268,7 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
 
       if (response.ok) {
         setShowExceptionModal(false);
+        setOneTimeLocationSaved(false); // Reset for next time
         alert(
           "Exception request submitted successfully. Your teacher will review it."
         );
@@ -232,6 +288,7 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
     }
   };
 
+  // Loading and error states remain the same...
   if (settingsLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
@@ -337,15 +394,13 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
             )}
           </Button>
 
-          {(!timeValid || (location && !location.isValid) || locationError) && (
-            <Button
-              onClick={submitExceptionRequest}
-              variant="outline"
-              className="w-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10 py-4 rounded-2xl"
-            >
-              Submit Exception Request
-            </Button>
-          )}
+          <Button
+            onClick={submitExceptionRequest}
+            variant="outline"
+            className="w-full border-orange-500/30 text-orange-400 hover:bg-orange-500/10 py-4 rounded-2xl"
+          >
+            Submit Exception Request
+          </Button>
         </div>
       </div>
     </div>
@@ -633,21 +688,55 @@ const AttendanceValidation = ({ onValidationSuccess }) => {
                 />
               </div>
 
+              {/* MODIFIED: Location section with one-time check button */}
               <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-600">
-                <div className="text-sm text-gray-400 mb-1">
-                  Current Location
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm text-gray-400">Current Location</div>
+                  {!oneTimeLocationSaved && (
+                    <button
+                      onClick={handleOneTimeLocationCheck}
+                      disabled={isOneTimeLocationLoading}
+                      className="text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1 rounded-md flex items-center gap-1"
+                    >
+                      {isOneTimeLocationLoading ? (
+                        <>
+                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin"></div>
+                          Getting...
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="w-3 h-3" />
+                          One Time Check
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
                 <div className="text-white text-sm">
-                  {location
+                  {exceptionForm.currentLocation
+                    ? `${
+                        exceptionForm.currentLocation.distance
+                      }m from institution ${
+                        oneTimeLocationSaved ? "(Updated)" : ""
+                      }`
+                    : location
                     ? `${location.distance}m from institution`
                     : "Location not available"}
                 </div>
+                {oneTimeLocationSaved && (
+                  <div className="text-green-400 text-xs mt-1">
+                    ✓ Location updated for exception request
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="flex space-x-3 mt-6">
               <button
-                onClick={() => setShowExceptionModal(false)}
+                onClick={() => {
+                  setShowExceptionModal(false);
+                  setOneTimeLocationSaved(false); // Reset on cancel
+                }}
                 className="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl transition-colors"
               >
                 Cancel
