@@ -3,6 +3,37 @@ import { db } from "@/lib/firebaseConfig";
 import { USER_ROLES } from "@/constants/userRoles";
 import { initializeUserStats } from "@/services/statsService";
 
+export const PASSWORD_REQUIREMENTS_MESSAGE =
+  "Password must contain at least 8 characters, including uppercase, lowercase, number, and special character.";
+
+/**
+ * Validates password strength for new accounts.
+ * @param {string} password - Password entered by the user.
+ * @returns {string|null} Error message when invalid, otherwise null.
+ */
+export const validatePasswordStrength = (password) => {
+  if (!password) {
+    return "Password is required";
+  }
+
+  const hasMinimumLength = password.length >= 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecialCharacter = /[^A-Za-z0-9]/.test(password);
+
+  if (
+    !hasMinimumLength ||
+    !hasUppercase ||
+    !hasLowercase ||
+    !hasNumber ||
+    !hasSpecialCharacter
+  ) {
+    return PASSWORD_REQUIREMENTS_MESSAGE;
+  }
+
+  return null;
+};
 
 /**
  * Returns a user-friendly authentication error message.
