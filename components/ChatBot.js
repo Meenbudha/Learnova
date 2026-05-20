@@ -448,7 +448,9 @@ const LearnovaChatbot = () => {
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      if (!isLoading && inputMessage.trim()) {
+        handleSendMessage();
+      }
     }
   };
 
@@ -746,8 +748,9 @@ const LearnovaChatbot = () => {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyDown={handleKeyPress}
+                  disabled={isLoading}
                   placeholder="Ask Nova about Learnova..."
-                  className={`w-full px-4 py-3 border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all ${themeClasses.input}`}
+                  className={`w-full px-4 py-3 border rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${themeClasses.input}`}
                   rows="1"
                   onInput={(e) => {
                     e.target.style.height = "auto";
