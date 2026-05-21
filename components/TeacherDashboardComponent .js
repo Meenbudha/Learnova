@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import ChartSkeleton from "@/components/ui/ChartSkeleton";
+import DashboardSkeleton from "@/components/ui/DashboardSkeleton";
 
 const AttendanceTrendsChart = dynamic(
   () => import("@/components/charts/AttendanceTrendsChart"),
@@ -65,6 +66,7 @@ const EngagementChart = dynamic(
 
 
 const TeacherDashboard = () => {
+  const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [attendanceWindow, setAttendanceWindow] = useState(false);
   const [currentPasscode, setCurrentPasscode] = useState("");
@@ -383,7 +385,12 @@ const TeacherDashboard = () => {
   };
 
   useEffect(() => {
-    const timer = setInterval(() => {
+
+  const loadingTimer = setTimeout(() => {
+    setLoading(false);
+  }, 1500);
+
+  const interval = setInterval(() => {
       const now = new Date();
       setCurrentTime(now);
 
@@ -411,7 +418,10 @@ const TeacherDashboard = () => {
       setTodayClasses(weeklySchedule[today] || []);
     }, 1000);
 
-    return () => clearInterval(timer);
+    return () => {
+  clearInterval(timer);
+  clearTimeout(loadingTimer);
+};
   }, []);
 
   const generatePasscode = () => {
@@ -456,6 +466,10 @@ const TeacherDashboard = () => {
     return user?.email?.[0]?.toUpperCase() || "T";
   };
 
+
+  if (loading) {
+  return <DashboardSkeleton />;
+}
   const renderDashboard = () => (
     <div className="space-y-8">
       {/* Passcode Generation Section */}

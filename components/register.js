@@ -82,8 +82,15 @@ setEmailSuggestion(null);
     }
 
     try {
+      const token = await user?.getIdToken();
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch("/api/register", {
         method: "POST",
+        headers,
         body: formData,
       });
 

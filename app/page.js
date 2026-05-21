@@ -219,7 +219,7 @@ export default function AboutPage() {
     setScrollY(window.scrollY);
   }, []);
 
- const handleAnimationComplete = useCallback(() => {
+  const handleAnimationComplete = useCallback(() => {
   }, []);
 
   useEffect(() => {
@@ -410,10 +410,10 @@ export default function AboutPage() {
                   </p>
                 </div>
 
-                  <ActionButton href="/activity">
-                      Learn More
-                      <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-                  </ActionButton>
+                <ActionButton href="/activity">
+                  Learn More
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
+                </ActionButton>
               </Reveal>
 
               <Reveal className="relative" delay={0.1}>
@@ -470,7 +470,7 @@ export default function AboutPage() {
               </p>
             </Reveal>
 
-            <div className="grid md:grid-cols-3 gap-8">
+            <div className="grid md:grid-cols-3 gap-8 items-stretch">
               {VALUES_DATA.map((value, index) => (
                 <Reveal key={value.title} delay={index * 0.08}>
                   <Card className="group bg-black/40 border-white/10 backdrop-blur-xl hover:border-accent/50 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-accent/25">
@@ -521,8 +521,8 @@ export default function AboutPage() {
             <div className="grid md:grid-cols-3 gap-8">
               {TEAM_MEMBERS.map((member, index) => (
                 <Reveal key={member.name} delay={index * 0.08}>
-                  <Card className="group bg-black/40 border-white/10 backdrop-blur-xl hover:border-accent/50 transition-all duration-700 hover:scale-[1.02]">
-                    <CardContent className="pt-8 text-center">
+                  <Card className="group h-full flex flex-col bg-black/40 border-white/10 backdrop-blur-xl hover:border-accent/50 transition-all duration-700 hover:scale-[1.02]">
+                    <CardContent className="pt-8 text-center flex flex-col h-full">
                       <div className="relative mb-6">
                         <div
                           className={`w-28 h-28 bg-gradient-to-br ${member.color} rounded-full flex items-center justify-center mx-auto group-hover:scale-105 transition-transform duration-500 relative overflow-hidden`}
@@ -625,10 +625,10 @@ export default function AboutPage() {
               </p>
             </Reveal>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
               {IMPACT_DATA.map((impact, index) => (
                 <Reveal key={impact.title} delay={index * 0.08}>
-                  <div className="group bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 hover:border-accent/40 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-accent/25 text-center">
+                  <div className="group h-full flex flex-col bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 hover:border-accent/40 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-accent/25 text-center">
                     <impact.icon className="w-12 h-12 text-accent mx-auto mb-6 group-hover:scale-110 transition-transform duration-500" />
                     <h3 className="text-xl font-semibold text-white mb-3 group-hover:text-accent transition-colors duration-500">
                       {impact.title}

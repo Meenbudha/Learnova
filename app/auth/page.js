@@ -218,7 +218,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen pt-10 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <div className="min-h-screen pt-24 lg:pt-32 bg-gradient-to-br from-gray-900 via-gray-800 to-black">
       <Navbar />
 
       <div className="relative overflow-hidden">

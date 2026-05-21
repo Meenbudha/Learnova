@@ -14,7 +14,7 @@ const MIN_CONFIDENCE_TO_RECORD = 60;
 export default function FaceRecognizer({ authUser }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const { labels: fetchedLabels, loading: labelsLoading, error } = useLabels();
+  const { labels: fetchedLabels, loading: labelsLoading, error } = useLabels(authUser);
 
   const [message, setMessage] = useState("Loading models...");
   const [finished, setFinished] = useState(false);

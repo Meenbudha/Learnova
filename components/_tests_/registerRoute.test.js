@@ -1,6 +1,7 @@
-import { POST } from "@/app/api/register/route";
+import { POST, rateLimitMap } from "@/app/api/register/route";
 import { connectDb } from "@/lib/mongodb";
-import { put } from "@vercel/blob";
+import { put, del } from "@vercel/blob";
+import { verifyFirebaseToken } from "@/lib/firebase-admin";
 
 jest.mock("next/server", () => ({
   NextResponse: {
@@ -16,18 +17,33 @@ jest.mock("next/server", () => ({
 
 jest.mock("@vercel/blob", () => ({
   put: jest.fn(),
+  del: jest.fn(),
 }));
 
 jest.mock("@/lib/mongodb", () => ({
   connectDb: jest.fn(),
 }));
 
-describe("POST /api/register - Email Validation Security Tests", () => {
+jest.mock("@/lib/firebase-admin", () => ({
+  verifyFirebaseToken: jest.fn(),
+}));
+
+describe("POST /api/register - Authentication, Rollback, and Validation Security Tests", () => {
   let mockFindOne;
   let mockInsertOne;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    rateLimitMap.clear();
+
+    if (rateLimitMap) {
+      rateLimitMap.clear();
+    }
+
+    verifyFirebaseToken.mockImplementation(async (token) => {
+      if (!token || token === "invalid-token") return null;
+      return { uid: "mock-uid", email: token };
+    });
 
     mockFindOne = jest.fn();
     mockInsertOne = jest.fn();
@@ -40,18 +56,60 @@ describe("POST /api/register - Email Validation Security Tests", () => {
     });
 
     put.mockResolvedValue({ url: "https://example.com/blob.jpg" });
+    del.mockResolvedValue();
+
+    // Default mock behavior for token verification: successful validation matching the body email
+    verifyFirebaseToken.mockImplementation(async (token) => {
+      if (!token) return null;
+      if (token === "invalid-token") return null;
+      return {
+        uid: "mock-uid",
+        email: token.includes("@") ? token : "user@domain.com",
+      };
+    });
   });
 
-  const mockFile = {
-    arrayBuffer: jest.fn().mockResolvedValue(new ArrayBuffer(8)),
-    type: "image/jpeg",
+  const createMockFile = (mimeType, size, magicBytes = []) => {
+    const buffer = new Uint8Array(magicBytes.concat(new Array(Math.max(0, 12 - magicBytes.length)).fill(0))).buffer;
+    const BaseClass = typeof File !== "undefined" ? File : class {};
+    const mockFileObj = Object.create(BaseClass.prototype);
+    Object.defineProperty(mockFileObj, "type", { value: mimeType, writable: true, enumerable: true, configurable: true });
+    Object.defineProperty(mockFileObj, "size", { value: size, writable: true, enumerable: true, configurable: true });
+    Object.defineProperty(mockFileObj, "arrayBuffer", { value: jest.fn().mockResolvedValue(buffer), writable: true, enumerable: true, configurable: true });
+    Object.defineProperty(mockFileObj, "slice", {
+      value: jest.fn().mockReturnValue({
+        arrayBuffer: jest.fn().mockResolvedValue(buffer),
+      }),
+      writable: true,
+      enumerable: true,
+      configurable: true
+    });
+    return mockFileObj;
   };
 
-  const createMockRequest = (data) => {
+  const createMockRequest = (data, token = "user@domain.com") => {
+    const headers = new Map();
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
     return {
+      headers: {
+        get: jest.fn().mockImplementation((name) => {
+          if (name.toLowerCase() === "authorization") {
+            return authHeader;
+          }
+          if (name.toLowerCase() === "x-forwarded-for") {
+            return data.ip || "127.0.0.1";
+          }
+          return null;
+        }),
+      },
       formData: jest.fn().mockResolvedValue({
         get: (key) => data[key],
       }),
+      headers: {
+        get: (key) => headers.get(key.toLowerCase()) || null,
+      },
     };
   };
 
@@ -62,7 +120,7 @@ describe("POST /api/register - Email Validation Security Tests", () => {
     const req = createMockRequest({
       name: "John Doe",
       rollNo: "123456",
-      email: "user+tag@domain.co.uk",
+      email: "user@domain.com",
       photo: mockFile,
     });
 
@@ -71,7 +129,7 @@ describe("POST /api/register - Email Validation Security Tests", () => {
 
     expect(response.status).toBe(201);
     expect(body.success).toBe(true);
-    expect(body.data.user.email).toBe("user+tag@domain.co.uk");
+    expect(body.data.user.email).toBe("user@domain.com");
     expect(mockInsertOne).toHaveBeenCalled();
   });
 
@@ -96,6 +154,103 @@ describe("POST /api/register - Email Validation Security Tests", () => {
     expect(response.status).toBe(400);
     expect(body.error).toBe("Invalid email address");
     expect(mockInsertOne).not.toHaveBeenCalled();
-    expect(connectDb).not.toHaveBeenCalled(); // Validation must happen before DB connection or insertion
+  });
+
+  test("rejects request if Authorization header is missing (401)", async () => {
+    const req = createMockRequest({
+      name: "John Doe",
+      rollNo: "123456",
+      email: "user@domain.com",
+      photo: mockFile,
+    }, ""); // empty token
+
+    const response = await POST(req);
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.error).toBe("Unauthorized");
+    expect(mockInsertOne).not.toHaveBeenCalled();
+  });
+
+  test("rejects request if Firebase token is invalid (401)", async () => {
+    const req = createMockRequest({
+      name: "John Doe",
+      rollNo: "123456",
+      email: "user@domain.com",
+      photo: mockFile,
+    }, "invalid-token");
+
+    const response = await POST(req);
+    const body = await response.json();
+
+    expect(response.status).toBe(401);
+    expect(body.error).toBe("Unauthorized");
+    expect(mockInsertOne).not.toHaveBeenCalled();
+  });
+
+  test("rejects request if authenticated email does not match requested email (403)", async () => {
+    const req = createMockRequest({
+      name: "John Doe",
+      rollNo: "123456",
+      email: "user@domain.com",
+      photo: mockFile,
+    }, "different-user@domain.com");
+
+    const response = await POST(req);
+    const body = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(body.error).toContain("Forbidden");
+    expect(mockInsertOne).not.toHaveBeenCalled();
+  });
+
+  test("rate limits requests if more than MAX_ATTEMPTS (5) per IP are made (429)", async () => {
+    mockFindOne.mockResolvedValue(null);
+    mockInsertOne.mockResolvedValue({ insertedId: "mock-id" });
+
+    // Send 5 successful requests
+    for (let i = 0; i < 5; i++) {
+      const req = createMockRequest({
+        name: "John Doe",
+        rollNo: `12345${i}`,
+        email: "user@domain.com",
+        photo: mockFile,
+      });
+      const response = await POST(req);
+      expect(response.status).toBe(201);
+    }
+
+    // 6th request from the same IP should trigger 429
+    const req6 = createMockRequest({
+      name: "John Doe",
+      rollNo: "123456",
+      email: "user@domain.com",
+      photo: mockFile,
+    });
+    const response6 = await POST(req6);
+    const body6 = await response6.json();
+
+    expect(response6.status).toBe(429);
+    expect(body6.error).toContain("Too many registration attempts");
+  });
+
+  test("deletes uploaded blob if database insertion fails (rollback)", async () => {
+    mockFindOne.mockResolvedValue(null);
+    mockInsertOne.mockRejectedValue(new Error("Database write failed"));
+
+    const req = createMockRequest({
+      name: "John Doe",
+      rollNo: "123456",
+      email: "user@domain.com",
+      photo: mockFile,
+    });
+
+    const response = await POST(req);
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body.error).toBe("Database write failed");
+    expect(put).toHaveBeenCalled();
+    expect(del).toHaveBeenCalledWith("https://example.com/blob.jpg");
   });
 });

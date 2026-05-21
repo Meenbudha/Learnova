@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { useNotifications } from "@/hooks/useNotifications";
 import {
   Menu,
   X,
@@ -29,22 +30,17 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      message: "Welcome to Learnova! 🎉",
-      time: "Just now",
-      read: false,
-    },
-    {
-      id: 2,
-      message: "Complete your profile to get started.",
-      time: "2 min ago",
-      read: false,
-    },
-  ]);
+  const {
+  notifications,
+  removeNotification,
+  markAsRead,
+  markAllAsRead,
+  addNotification,
+  } = useNotifications();
 
-  const [unreadCount, setUnreadCount] = useState(2);
+  const unreadCount = notifications.filter(
+  (n) => !n.read
+  ).length;
 
   const { user, userProfile, signOut, isAuthenticated } =
     useAuthContext();
@@ -99,22 +95,24 @@ export function Navbar() {
     };
   }, [handleClickOutside]);
 
-  // ESC Key Support
+  // ESC Key Support — also listens to the global learnova:escape custom event
   useEffect(() => {
+    const close = () => {
+      setIsDropdownOpen(false);
+      setIsNotificationOpen(false);
+      setIsMenuOpen(false);
+    };
     const handleEscape = (event) => {
-      if (event.key === "Escape") {
-        setIsDropdownOpen(false);
-        setIsNotificationOpen(false);
-      }
+      if (event.key === "Escape") close();
     };
 
     window.addEventListener("keydown", handleEscape);
+    window.addEventListener("learnova:escape", close);
 
-    return () =>
-      window.removeEventListener(
-        "keydown",
-        handleEscape
-      );
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+      window.removeEventListener("learnova:escape", close);
+    };
   }, []);
 
   // Prevent body scroll
@@ -138,27 +136,6 @@ export function Navbar() {
   }, [pathname]);
 
   // Notification handlers
-  const markAsRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, read: true } : n
-      )
-    );
-
-    setUnreadCount((prev) => Math.max(0, prev - 1));
-  };
-
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((n) => ({
-        ...n,
-        read: true,
-      }))
-    );
-
-    setUnreadCount(0);
-  };
-
   const handleLogout = async () => {
     setIsDropdownOpen(false);
     setIsMenuOpen(false);
@@ -335,7 +312,7 @@ export function Navbar() {
 
             {/* Desktop Nav */}
             <div className="hidden md:flex items-center space-x-2">
-
+        
               {navigationItems.map((item) => {
                 const isActive =
                   pathname === item.href;
@@ -355,8 +332,21 @@ export function Navbar() {
                 );
               })}
 
-              {isAuthenticated ? (
+              { true ? (
                 <div className="flex items-center space-x-2 md:space-x-4 ml-2 md:ml-6">
+                 <button
+                  onClick={() =>
+                    addNotification({
+                      message: "Test notification works!",
+                      time: "Just now",
+                      read: false,
+                      type: "success",
+                    })
+                  }
+                  className="bg-blue-500 text-white px-3 py-1 rounded"
+                >
+                  Test Notification
+                </button>
                   <Button asChild className="hidden md:block relative bg-gradient-to-r from-accent to-blue-500 hover:from-accent/90 hover:to-blue-600 text-white font-medium shadow-lg hover:shadow-2xl hover:shadow-accent/30 transition-all duration-300 hover:scale-105 group overflow-hidden">
                     <Link href="/attendance">
                       <span className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -499,7 +489,7 @@ export function Navbar() {
                     </button>
 
                     {isDropdownOpen && (
-                      <div className="absolute right-0 mt-3 min-w-64 bg-black/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/20 py-2 z-[52]">
+                      <div className="absolute right-0 mt-3 min-w-64 bg-black/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/20 py-2 z-[100] overflow-hidden">
                         {userMenuItems.map(
                           (item) => (
                             <Link

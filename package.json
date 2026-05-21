@@ -14,7 +14,7 @@
   "author": "Prem Shaw",
   "license": "MIT",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "test": "jest"

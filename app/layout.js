@@ -1,4 +1,6 @@
 // 1. Enhanced layout.js with proper structured data for sitelinks
+
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import React from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Suspense } from "react";
@@ -232,6 +234,7 @@ export default function RootLayout({ children }) {
         className={`font-sans ${geistSans.variable} ${geistMono.variable} antialiased text-white bg-slate-950 min-h-screen`}
       >
         <AuthProvider>
+          <NotificationProvider>
           <Suspense fallback={null}>
             <PageTransition>{children}</PageTransition>
             <ScrollToTop />
@@ -251,6 +254,7 @@ export default function RootLayout({ children }) {
               }}
             />
           </Suspense>
+          </NotificationProvider>
         </AuthProvider>
       </body>
     </html>

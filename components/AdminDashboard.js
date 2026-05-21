@@ -25,6 +25,7 @@ import {
 import { Navbar } from "./Navbar";
 import dynamic from "next/dynamic";
 import ChartSkeleton from "@/components/ui/ChartSkeleton";
+import DashboardSkeleton from "@/components/ui/DashboardSkeleton";
 
 const AttendanceTrendsChart = dynamic(
   () => import("@/components/charts/AttendanceTrendsChart"),
@@ -37,10 +38,18 @@ const EngagementChart = dynamic(
 );
 
 const SuperAdminDashboard = () => {
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedInstitute, setSelectedInstitute] = useState("all");
   const [showCriticalAlert, setShowCriticalAlert] = useState(false);
   const [systemStatus, setSystemStatus] = useState("operational");
+  useEffect(() => {
+  const loadingTimer = setTimeout(() => {
+    setLoading(false);
+  }, 1500);
+
+  return () => clearTimeout(loadingTimer);
+}, []);
 
   // Platform-wide statistics
   const platformStats = {
@@ -852,6 +861,10 @@ const SuperAdminDashboard = () => {
       </div>
     </div>
   );
+
+  if (loading) {
+  return <DashboardSkeleton />;
+}
 
   return (
     <div className="min-h-screen p-6 space-y-8 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white mt-16">
