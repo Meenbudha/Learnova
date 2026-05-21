@@ -3,7 +3,7 @@ import {
   collection,
   doc,
   getDoc,
-  getDocs,
+  getCountFromServer,
   increment,
   query,
   setDoc,
@@ -111,8 +111,8 @@ export const recalculateAttendanceRate = async (userId) => {
       await initializeUserStats(userId);
     }
 
-    const attendanceSnap = await getDocs(attendanceQuery);
-    const presentDays = attendanceSnap.size;
+    const countSnapshot = await getCountFromServer(attendanceQuery);
+    const presentDays = countSnapshot.data().count;
     const totalDays = getWeekdaysSinceYearStart();
     const rate = Math.min(100, Math.round((presentDays / totalDays) * 100));
 
