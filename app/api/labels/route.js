@@ -8,13 +8,14 @@ const MAX_ATTEMPTS = 10;
 
 export async function GET(request) {
   try {
-    // Rate Limiting Check
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : "127.0.0.1";
+    // 1. Rate Limiting Check
+    const ip = request.headers.get("x-forwarded-for") || "127.0.0.1";
     const now = Date.now();
+    
     if (!rateLimitMap.has(ip)) {
       rateLimitMap.set(ip, []);
     }
+    
     const attempts = rateLimitMap.get(ip).filter((timestamp) => now - timestamp < RATE_LIMIT_WINDOW);
     attempts.push(now);
     rateLimitMap.set(ip, attempts);
@@ -24,15 +25,21 @@ export async function GET(request) {
       return jsonError("Too many attempts. Please try again later.", 429);
     }
 
-    // Token Authentication Check
+    // 2. Token Authentication Check
     const authorization = request.headers.get("authorization");
     const token = authorization?.split(" ")[1];
+
+    if (!token) {
+      return jsonError("Unauthorized: No token provided", 401);
+    }
+
     const decodedToken = await verifyFirebaseToken(token);
 
     if (!decodedToken) {
-      return jsonError("Unauthorized", 401);
+      return jsonError("Unauthorized: Invalid token", 401);
     }
 
+    // 3. Fetch Data with Projection
     const db = await connectDb();
     const users = db.collection("users");
 
