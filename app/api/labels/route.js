@@ -51,7 +51,7 @@ export async function GET(request) {
     const users = db.collection("users");
 
     const allUsers = await users
-      .find(query, { projection: { _id: 1, name: 1, email: 1, image: 1 } })
+      .find({}, { projection: { _id: 1, name: 1, email: 1, image: 1 } })
       .limit(50)
       .toArray();
 
