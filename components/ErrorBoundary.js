@@ -13,7 +13,8 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Error caught by boundary - handle silently in production
+    this.setState({ errorInfo });
+    console.error("ErrorBoundary caught an error:", error, errorInfo);
   }
 
   componentDidUpdate(prevProps) {
