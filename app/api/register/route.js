@@ -199,14 +199,7 @@ export async function POST(req) {
       201,
     );
   } catch (error) {
-    // Suppress console logging in production
-    // Return generic error to client to prevent information disclosure
-    const statusCode = error.code === 11000 ? 409 : 500;
-    const clientMessage =
-      error.code === 11000
-        ? "This email is already registered"
-        : "Registration failed. Please try again later.";
-
-    return jsonError(clientMessage, statusCode);
+    console.error(error);
+    return jsonError("Internal server error", 500);
   }
 }
