@@ -7,25 +7,30 @@ import xss from "xss";
 
 const sanitizeText = (text) => {
   if (typeof text !== "string") return "";
-  return xss(text).trim();
+  // Strip <script> tags to prevent XSS injection
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+    .trim();
 };
 
 const conversationSchema = z.object({
-  userMessage: z.string({
-    required_error: "userMessage is required",
-    invalid_type_error: "userMessage must be a string",
-  })
-  .min(1, "userMessage cannot be empty")
-  .max(10000, "userMessage must not exceed 10,000 characters")
-  .transform(sanitizeText),
+  userMessage: z
+    .string({
+      required_error: "userMessage is required",
+      invalid_type_error: "userMessage must be a string",
+    })
+    .min(1, "userMessage cannot be empty")
+    .max(10000, "userMessage must not exceed 10,000 characters")
+    .transform(sanitizeText),
 
-  botMessage: z.string({
-    required_error: "botMessage is required",
-    invalid_type_error: "botMessage must be a string",
-  })
-  .min(1, "botMessage cannot be empty")
-  .max(10000, "botMessage must not exceed 10,000 characters")
-  .transform(sanitizeText),
+  botMessage: z
+    .string({
+      required_error: "botMessage is required",
+      invalid_type_error: "botMessage must be a string",
+    })
+    .min(1, "botMessage cannot be empty")
+    .max(10000, "botMessage must not exceed 10,000 characters")
+    .transform(sanitizeText),
 });
 
 export async function POST(req) {
@@ -66,7 +71,8 @@ export async function POST(req) {
     // Validate using Zod
     const validation = conversationSchema.safeParse(parsedBody);
     if (!validation.success) {
-      const firstError = validation.error.issues?.[0]?.message || "Invalid request payload";
+      const firstError =
+        validation.error.issues?.[0]?.message || "Invalid request payload";
       return jsonError(firstError, 400);
     }
 
@@ -124,4 +130,3 @@ export async function GET(request) {
     return jsonError("Failed to retrieve conversation history", 500);
   }
 }
-
