@@ -2,7 +2,11 @@ import { put, del } from "@vercel/blob";
 import { randomUUID } from "crypto";
 
 import { connectDb } from "@/lib/mongodb";
-import { jsonSuccess, jsonError } from "@/lib/api-response";
+
+import {
+  jsonError,
+  jsonSuccess,
+} from "@/lib/api-response";
 
 import {
   withErrorHandler,
@@ -15,7 +19,12 @@ import {
   ForbiddenError,
 } from "@/lib/errors";
 
-if (typeof global !== "undefined" && !global.mockFile) {
+import { z } from "zod";
+
+if (
+  typeof global !== "undefined" &&
+  !global.mockFile
+) {
   global.mockFile = {
     size: 1024,
     type: "image/jpeg",
@@ -24,7 +33,8 @@ if (typeof global !== "undefined" && !global.mockFile) {
   };
 }
 
-export const rateLimitMap = new Map();
+export const rateLimitMap =
+  new Map();
 
 const RATE_LIMIT_WINDOW =
   60 * 1000;
@@ -41,12 +51,50 @@ const ALLOWED_IMAGE_TYPES =
     "image/webp",
   ]);
 
-const EMAIL_PATTERN =
-  /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const WEBP_MARKER = [
+  0x57,
+  0x45,
+  0x42,
+  0x50,
+];
 
-/**
- * Magic bytes validation
- */
+const registerSchema =
+  z.object({
+    name: z
+      .string({
+        required_error:
+          "Name is required",
+      })
+      .trim()
+      .min(
+        1,
+        "Name is required"
+      )
+      .max(100),
+
+    rollNo: z
+      .string({
+        required_error:
+          "Roll number is required",
+      })
+      .trim()
+      .min(
+        1,
+        "Roll number is required"
+      )
+      .max(50),
+
+    email: z
+      .string({
+        required_error:
+          "Email is required",
+      })
+      .trim()
+      .email(
+        "Invalid email format"
+      )
+      .toLowerCase(),
+  });
 
 const MAGIC_BYTES = {
   "image/jpeg": [
@@ -69,13 +117,6 @@ const MAGIC_BYTES = {
     0x46,
   ],
 };
-
-const WEBP_MARKER = [
-  0x57,
-  0x45,
-  0x42,
-  0x50,
-];
 
 const normalizeText = (
   value
@@ -109,7 +150,8 @@ const validateMagicBytes = (
 
   if (
     !magic ||
-    buffer.length < magic.length
+    buffer.length <
+      magic.length
   ) {
     return false;
   }
@@ -119,7 +161,9 @@ const validateMagicBytes = (
     i < magic.length;
     i++
   ) {
-    if (buffer[i] !== magic[i]) {
+    if (
+      buffer[i] !== magic[i]
+    ) {
       return false;
     }
   }
@@ -133,7 +177,8 @@ const validateMagicBytes = (
 
     for (
       let i = 0;
-      i < WEBP_MARKER.length;
+      i <
+      WEBP_MARKER.length;
       i++
     ) {
       if (
@@ -159,16 +204,24 @@ export const POST =
 
       const now = Date.now();
 
-      if (!rateLimitMap.has(ip)) {
-        rateLimitMap.set(ip, []);
+      if (
+        !rateLimitMap.has(ip)
+      ) {
+        rateLimitMap.set(
+          ip,
+          []
+        );
       }
 
       const attempts =
         rateLimitMap
           .get(ip)
           .filter(
-            (timestamp) =>
-              now - timestamp <
+            (
+              timestamp
+            ) =>
+              now -
+                timestamp <
               RATE_LIMIT_WINDOW
           );
 
@@ -199,53 +252,80 @@ export const POST =
       const formData =
         await req.formData();
 
-      const name =
-        normalizeText(
-          formData.get("name")
+      const rawName =
+        formData.get(
+          "name"
         );
 
-      const rollNo =
-        normalizeText(
-          formData.get("rollNo")
+      const rawRollNo =
+        formData.get(
+          "rollNo"
         );
 
-      const email =
-        normalizeText(
-          formData.get("email")
-        ).toLowerCase();
+      const rawEmail =
+        formData.get(
+          "email"
+        );
 
       const file =
-        formData.get("photo");
+        formData.get(
+          "photo"
+        );
+
+      // Validate fields
+      const validationResult =
+        registerSchema.safeParse(
+          {
+            name: rawName,
+            rollNo:
+              rawRollNo,
+            email:
+              rawEmail,
+          }
+        );
 
       if (
-        !name ||
-        !rollNo ||
-        !email ||
-        !file
+        !validationResult.success
       ) {
-        throw new ValidationError(
-          "Name, rollNo, email, and photo are required"
+        return jsonError(
+          validationResult
+            .error.errors[0]
+            .message,
+          400
         );
       }
 
+      const {
+        name,
+        rollNo,
+        email,
+      } =
+        validationResult.data;
+
+      // Validate file
       if (
-        !EMAIL_PATTERN.test(email)
+        !file ||
+        typeof file ===
+          "string" ||
+        !file.type
       ) {
-        throw new ValidationError(
-          "Invalid email address"
+        return jsonError(
+          "Photo is required and must be a valid file",
+          400
         );
       }
 
-      // Prevent registering another user
+      // Prevent another user registration
       if (
         decodedToken.email !==
         email
       ) {
         throw new ForbiddenError(
-          "Forbidden: Cannot register face for a different user"
+          "Forbidden: Cannot register face for another user"
         );
       }
 
+      // File size
       if (
         file.size >
         MAX_FILE_SIZE
@@ -255,6 +335,7 @@ export const POST =
         );
       }
 
+      // File type
       if (
         !ALLOWED_IMAGE_TYPES.has(
           file.type
@@ -270,7 +351,9 @@ export const POST =
         await file.arrayBuffer();
 
       const buffer =
-        Buffer.from(arrayBuffer);
+        Buffer.from(
+          arrayBuffer
+        );
 
       // Validate actual size
       if (
@@ -295,19 +378,21 @@ export const POST =
         )
       ) {
         return jsonError(
-          "Invalid image content.",
+          "Invalid image content",
           415
         );
       }
 
-      // Connect DB
+      // Database
       const db =
         await connectDb();
 
       const users =
-        db.collection("users");
+        db.collection(
+          "users"
+        );
 
-      // Existing user check
+      // Existing user
       const existingUser =
         await users.findOne({
           $or: [
@@ -325,7 +410,9 @@ export const POST =
 
       // Generate filename
       const safeName =
-        name.replace(
+        normalizeText(
+          name
+        ).replace(
           /[^a-zA-Z0-9_-]/g,
           "_"
         ) || "user";
@@ -337,24 +424,28 @@ export const POST =
 
       const fileName = `labels/${safeName}/${randomUUID()}.${fileExtension}`;
 
-      // Upload blob
-      const blob = await put(
-        fileName,
-        buffer,
-        {
-          contentType:
-            file.type,
+      // Upload
+      const blob =
+        await put(
+          fileName,
+          buffer,
+          {
+            contentType:
+              file.type,
 
-          access: "public",
-        }
-      );
+            access:
+              "public",
+          }
+        );
 
       try {
         const user = {
           name,
           rollNo,
           email,
-          image: blob.url,
+          image:
+            blob.url,
+
           firebaseUid:
             decodedToken.uid,
         };
@@ -387,7 +478,11 @@ export const POST =
         );
       } catch (dbError) {
         try {
-          await del(blob.url);
+          if (blob?.url) {
+            await del(
+              blob.url
+            );
+          }
         } catch (
           cleanupError
         ) {
@@ -401,4 +496,3 @@ export const POST =
       }
     }
   );
-

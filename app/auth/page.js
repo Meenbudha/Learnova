@@ -35,7 +35,7 @@ function AuthPageContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
 
-  const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const [showRoleSelection, setShowRoleSelection] = useState(true);
   const [isLogin, setIsLogin] = useState(mode !== "signup");
   const [selectedRole, setSelectedRole] = useState("");
 
