@@ -34,8 +34,10 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  
+const { notifications, markAsRead, markAllAsRead } = useNotifications();
+
+const unreadCount = notifications.filter(n => !n.read).length;
 
   const { user, userProfile, signOut, isAuthenticated } =
     useAuthContext();
@@ -55,7 +57,7 @@ export function Navbar() {
 
   // Scroll Effect
   useEffect(() => {
-    const handleScroll = () => {
+    const handleScroll = () => {  
       const progress = Math.min(window.scrollY / 100, 1);
 
       setScrollProgress(progress);
@@ -142,30 +144,6 @@ export function Navbar() {
     setIsMenuOpen(false);
 
     await signOut();
-  };
-
-  // Mock handler for testing notifications in dev mode
-  const handleTestNotification = () => {
-    const newNotif = {
-      id: Date.now(),
-      message: "Test Notification Fired Successfully! 🔔",
-      time: "Just now",
-      read: false,
-    };
-    setNotifications((prev) => [newNotif, ...prev]);
-    setUnreadCount((prev) => prev + 1);
-  };
-
-  const markAsRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-    setUnreadCount((prev) => Math.max(0, prev - 1));
-  };
-
-  const markAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    setUnreadCount(0);
   };
 
   // Helpers
@@ -387,18 +365,16 @@ export function Navbar() {
                       </span>
                     </Link>
                   </Button>
-
-                  {/* 🛠️ FIXED: PRODUCTION-SAFE ENVIRONMENT CONDITIONAL FOR TESTING DEBUG BUTTON */}
-                  {process.env.NODE_ENV === "development" && (
-                    <Button 
-                      onClick={handleTestNotification} 
-                      variant="outline" 
-                      size="sm" 
-                      className="border-dashed border-yellow-500 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10 transition-all"
-                    >
-                      Test Notification
-                    </Button>
-                  )}
+//                   {process.env.NODE_ENV === "development" && (
+//                     <Button 
+//                       onClick={handleTestNotification} 
+//                       variant="outline" 
+//                       size="sm" 
+//                       className="border-dashed border-yellow-500 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/10 transition-all"
+//                     >
+//                       Test Notification
+//                     </Button>
+//                   )}
 
                   {/* Notifications */}
                   <div className="relative">
