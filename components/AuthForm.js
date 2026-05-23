@@ -103,10 +103,10 @@ export default function AuthForm({
             {isLogin
               ? `Sign in to your ${
                   ROLE_CONFIG[selectedRole]?.title.toLowerCase() || "account"
-                }`
+                } account`
               : `Create your ${
                   ROLE_CONFIG[selectedRole]?.title.toLowerCase() || "account"
-                }`}
+                } account`}
           </p>
         </div>
 
