@@ -35,8 +35,9 @@ describe("GET /api/labels - Security & Authentication Tests", () => {
     }
 
     verifyFirebaseToken.mockImplementation(async (token) => {
-      if (!token || token === "invalid-token") return null;
-      return { uid: "mock-uid", email: "user@domain.com" };
+      if (!token) return { valid: false, reason: "no_token" };
+      if (token === "invalid-token") return { valid: false, reason: "invalid_token" };
+      return { valid: true, decodedToken: { uid: "mock-uid", email: "user@domain.com" } };
     });
 
     mockToArray = jest.fn();
@@ -79,7 +80,7 @@ describe("GET /api/labels - Security & Authentication Tests", () => {
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body.error).toBe("Unauthorized");
+    expect(body.error).toBe("Unauthorized: No token provided");
     expect(connectDb).not.toHaveBeenCalled();
   });
 
@@ -90,7 +91,8 @@ describe("GET /api/labels - Security & Authentication Tests", () => {
     const body = await response.json();
 
     expect(response.status).toBe(401);
-    expect(body.error).toBe("Unauthorized");
+    expect(body.error.message).toBe("Unauthorized");
+    expect(body.error.reason).toBe("invalid_token");
     expect(connectDb).not.toHaveBeenCalled();
   });
 

@@ -87,6 +87,8 @@ describe("POST /api/register - Authentication, Rollback, and Validation Security
     return mockFileObj;
   };
 
+  const mockFile = createMockFile("image/jpeg", 1024, [0xff, 0xd8, 0xff]);
+
   const createMockRequest = (data, token = "user@domain.com") => {
     const headers = new Map();
     if (token) {

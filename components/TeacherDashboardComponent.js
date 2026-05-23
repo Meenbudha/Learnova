@@ -455,7 +455,7 @@ const TeacherDashboard = () => {
     }, 1000);
 
     return () => {
-      clearInterval(timer);
+      clearInterval(interval);
       clearTimeout(loadingTimer);
     };
   }, []);
@@ -528,8 +528,7 @@ const TeacherDashboard = () => {
               <div className="text-sm text-gray-400">Window closes in</div>
               <div className="text-white font-semibold">
                 {10 - currentTime.getMinutes()}:
-                {60 - currentTime.getSeconds() < 10 ? "0" : ""}
-                {60 - currentTime.getSeconds()} min
+                {String(currentTime.getSeconds()).padStart(2, "0")} min
               </div>
             </div>
           </div>

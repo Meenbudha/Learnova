@@ -149,21 +149,22 @@ const IMPACT_DATA = [
   },
 ];
 
-// Reusable components
+// ✅ UPDATED FIXED COMPONENT
 const SectionBadge = ({
   icon: Icon,
   text,
   gradient = "from-purple-500/20 to-pink-500/20",
-  borderColor = "purple-500/30",
+  borderClass = "border-purple-500/30", // 1. Pass the full class name string here
   textColor = "purple-300",
 }) => (
   <div
-    className={`inline-flex items-center px-4 py-2 bg-gradient-to-r ${gradient} rounded-full border border-${borderColor} backdrop-blur-sm mb-6`}
+    className={`inline-flex items-center px-4 py-2 bg-gradient-to-r ${gradient} rounded-full border ${borderClass} backdrop-blur-sm mb-6`} // 2. Drop the template literal concatenation
   >
     <Icon className={`w-5 h-5 text-${textColor.split("-")[0]}-400 mr-2`} />
     <span className={`text-${textColor} font-medium`}>{text}</span>
   </div>
 );
+
 
 const Reveal = ({ children, className = "", delay = 0, y = 28 }) => (
   <motion.div
@@ -377,6 +378,14 @@ export default function AboutPage() {
             </h1>
           </div>
         </section>
+        <div className="mt-8 flex justify-center">
+  <a
+    href="#mission"
+    className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full transition-all duration-300"
+  >
+    Explore More ↓
+  </a>
+</div>
 
         {/* Mission Section */}
         <section
@@ -465,6 +474,7 @@ export default function AboutPage() {
                 borderColor="accent/30"
                 textColor="accent"
               />
+              
 
               <h2 className="text-4xl md:text-5xl font-bold text-black dark:text-white mb-6">
                 Core Principles That Drive Us
@@ -633,7 +643,7 @@ export default function AboutPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
               {IMPACT_DATA.map((impact, index) => (
                 <Reveal key={impact.title} delay={index * 0.08}>
-                  <div className="group bg-card backdrop-blur-xl rounded-3xl p-8 border border-border hover:border-accent/40 transition-all duration-700 hover:scale-[1.02] hover:shadow-2xl hover:shadow-accent/25 text-center">
+                  <div className="bg-black rounded-3xl p-8 flex flex-col justify-center items-center text-center h-full min-h-[260px] border border-white/10">
                     <impact.icon className="w-12 h-12 text-accent mx-auto mb-6 group-hover:scale-110 transition-transform duration-500" />
                     <h3 className="text-xl font-semibold text-black dark:text-white mb-3 group-hover:text-accent transition-colors duration-500">
                       {impact.title}
