@@ -64,7 +64,7 @@ export const getErrorMessage = (errorCode) => {
     case "auth/too-many-requests":
       return "Too many failed attempts. Please try again later.";
     default:
-      return null;
+      return "Authentication failed. Please check your credentials and try again.";
   }
 };
 

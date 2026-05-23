@@ -148,8 +148,8 @@ function AuthPageContent() {
         });
       }
     } catch (err) {
-      toast.error("An unexpected error occurred. Please try again.");
-      setErrors({ submit: "An unexpected error occurred. Please try again." });
+      toast.error("Authentication failed. Please verify your credentials and try again.");
+      setErrors({ submit: "Authentication failed. Please verify your credentials and try again." });
     } finally {
       setIsLoading(false);
     }
@@ -193,11 +193,11 @@ function AuthPageContent() {
       } else {
         console.error("❌ Google login failed:", result.error);
         toast.error(result.error || "Google authentication failed.");
-        setErrors({ submit: result.error });
+        setErrors({ submit: result.error || "Google authentication failed. Please try again." });
       }
     } catch (err) {
-      toast.error("An unexpected error occurred. Please try again.");
-      setErrors({ submit: "An unexpected error occurred. Please try again." });
+      toast.error("Google authentication failed. Please check your credentials and try again.");
+      setErrors({ submit: "Google authentication failed. Please try again." });
     } finally {
       setIsLoading(false);
     }
@@ -230,8 +230,13 @@ function AuthPageContent() {
         setErrors({ forgotEmail: result.error });
       }
     } catch (err) {
+      toast.error(
+        "Password reset failed. Please verify your email and try again.",
+      );
+
       setErrors({
-        forgotEmail: "Failed to send reset email. Please try again.",
+        forgotEmail:
+          "Password reset failed. Please verify your email and try again.",
       });
     } finally {
       setIsLoading(false);
