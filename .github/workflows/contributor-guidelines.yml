@@ -38,29 +38,44 @@ jobs:
               state: 'open'
             });
 
-            const LIMIT = 4;
+            // Query ALL open PRs in the repository
+            const allPRs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+
+            const PER_PERSON_LIMIT = 3;
+            const GLOBAL_PR_LIMIT = 30;
             const issueCount = issues.data.length;
             const prCount = prs.data.length;
+            const totalOpenPRs = allPRs.data.length;
 
             // Message template
             let message = `📌 **Contribution Guidelines Reminder**\n\n`;
             message += `👋 Thanks for contributing to Learnova!\n\n`;
             message += `We maintain contribution limits to ensure quality and fair visibility:\n`;
-            message += `• **Max 3–4 open Issues** per contributor\n`;
-            message += `• **Max 3–4 open PRs** per contributor\n\n`;
+            message += `• **Per-person limit:** Max 3 open Issues & 3 open PRs\n`;
+            message += `• **Repository limit:** Max 30 open PRs total\n\n`;
             message += `**Your current activity:**\n`;
-            message += `- Open Issues: ${issueCount}\n`;
-            message += `- Open PRs: ${prCount}\n\n`;
+            message += `- Your Open Issues: ${issueCount}\n`;
+            message += `- Your Open PRs: ${prCount}\n`;
+            message += `- Repository Total Open PRs: ${totalOpenPRs}\n\n`;
 
             // Check if limits exceeded
-            if (issueCount > LIMIT) {
-              message += `⚠️ **You have ${issueCount} open issues** (limit is ${LIMIT}). `;
+            if (issueCount > PER_PERSON_LIMIT) {
+              message += `⚠️ **You have ${issueCount} open issues** (limit is ${PER_PERSON_LIMIT}). `;
               message += `Please close or complete existing work before opening new ones.\n\n`;
             }
 
-            if (prCount > LIMIT) {
-              message += `⚠️ **You have ${prCount} open PRs** (limit is ${LIMIT}). `;
+            if (prCount > PER_PERSON_LIMIT) {
+              message += `⚠️ **You have ${prCount} open PRs** (limit is ${PER_PERSON_LIMIT}). `;
               message += `Please get them reviewed, merged, or closed before opening new ones.\n\n`;
+            }
+
+            if (totalOpenPRs > GLOBAL_PR_LIMIT) {
+              message += `⚠️ **Repository has ${totalOpenPRs} open PRs** (global limit is ${GLOBAL_PR_LIMIT}). `;
+              message += `Consider reviewing and merging existing PRs before opening new ones.\n\n`;
             }
 
             message += `**Tips for quality contributions:**\n`;

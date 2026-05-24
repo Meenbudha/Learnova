@@ -280,14 +280,19 @@ We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for:
 
 To maintain repository quality and ensure fair visibility for all contributors, please note:
 
-- **Maximum 3–4 open Issues** per contributor at a time
-- **Maximum 3–4 open PRs** per contributor at a time
+**Per-Contributor Limits:**
+- **Maximum 3 open Issues** per contributor at a time
+- **Maximum 3 open PRs** per contributor at a time
+
+**Repository-Wide Limit:**
+- **Maximum 30 open PRs** total in the repository at any time
 
 **Why these limits?**
 - Encourages focused, high-quality work
 - Reduces spam and duplicate submissions
 - Ensures maintainers can review thoroughly
 - Gives all contributors fair visibility
+- Keeps repository manageable and organized
 
 **Before opening new Issues/PRs:**
 ✅ Close or merge previous open work  
