@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { motion } from "framer-motion";
 import SplitText from "@/components/ui-block/SplitText";
 import DarkVeil from "@/components/ui-block/DarkVeil";
+import toast from "react-hot-toast";
 import {
   Card,
   CardContent,
