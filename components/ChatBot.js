@@ -551,6 +551,8 @@ const LearnovaChatbot = () => {
   // Theme tokens - Enhanced for rich glassmorphism & premium UI spacing
   // ---------------------------------------------------------------------------
   const t = {
+  
+  const themeTokens = {
     bg: isDarkMode 
       ? "bg-gray-950/90 backdrop-blur-xl text-white" 
       : "bg-white/95 backdrop-blur-xl text-gray-900",
@@ -606,6 +608,10 @@ const LearnovaChatbot = () => {
     <div
       className={`fixed z-50 flex flex-col ${t.bg} shadow-2xl transition-all duration-300 border ${t.border} ${
         isMinimized ? "bottom-6 right-6 w-72 h-16 overflow-hidden rounded-xl" : "bottom-0 right-0 w-full h-full rounded-none sm:bottom-6 sm:right-6 sm:w-96 sm:h-[660px] sm:rounded-xl"
+      className={`fixed z-50 flex flex-col ${themeTokens.bg} shadow-2xl transition-all duration-300 border ${themeTokens.border} ${
+        isMinimized
+          ? "bottom-6 right-6 w-72 h-16 overflow-hidden rounded-xl"
+          : "bottom-0 right-0 w-full h-full rounded-none sm:bottom-6 sm:right-6 sm:w-96 sm:h-[660px] sm:rounded-xl"
       }`}
     >
       {/* ── Header ─────────────────────────────────────────────────────────── */}
