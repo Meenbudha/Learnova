@@ -22,10 +22,14 @@ const syncSchema = z.object({
 });
 
 export function normalizeConfidenceScore(confidenceScore) {
-  const parsedScore = Number(confidenceScore);
+  let parsedScore = Number(confidenceScore);
 
   if (!Number.isFinite(parsedScore)) {
     return 0;
+  }
+
+  if (parsedScore > 1) {
+    parsedScore = parsedScore / 100;
   }
 
   return Math.max(0, Math.min(1, parsedScore));

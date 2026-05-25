@@ -75,7 +75,7 @@ describe("attendance sync route", () => {
             userId: "user-123",
             studentName: "Tampered Name",
             email: "tampered@example.com",
-            confidenceScore: 1.7,
+            confidenceScore: 85,
             queuedAt: Date.now(),
           },
         ],
@@ -97,7 +97,7 @@ describe("attendance sync route", () => {
         userId: "user-123",
         studentName: "Server Name",
         email: "server@example.com",
-        confidenceScore: 1,
+        confidenceScore: 0.85,
         timestamp: FieldValue.serverTimestamp.mock.results[0].value,
         offlineSynced: true,
       }),
@@ -154,7 +154,8 @@ describe("attendance sync route", () => {
   test("normalizes confidence scores into the valid range", () => {
     expect(normalizeConfidenceScore(-2)).toBe(0);
     expect(normalizeConfidenceScore(0.42)).toBe(0.42);
-    expect(normalizeConfidenceScore(3.5)).toBe(1);
+    expect(normalizeConfidenceScore(75)).toBe(0.75);
+    expect(normalizeConfidenceScore(150)).toBe(1);
     expect(normalizeConfidenceScore(Number.NaN)).toBe(0);
   });
 });
