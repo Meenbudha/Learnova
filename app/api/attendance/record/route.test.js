@@ -140,4 +140,93 @@ describe("attendance record route", () => {
     expect(transactionGet).toHaveBeenCalledWith(docRef);
     expect(transactionSet).not.toHaveBeenCalled();
   });
+
+  test("simulates concurrent double-click requests and guarantees single write via OCC retry simulation", async () => {
+    authenticateRequest.mockResolvedValue({ uid: "user-123" });
+    parseJSON.mockResolvedValue({
+      userId: "user-123",
+      studentName: "Client Name",
+      email: "client@example.com",
+      confidenceScore: 75,
+      date: "2026-05-25",
+    });
+
+    getUserProfile.mockResolvedValue({
+      fullName: "Server Name",
+      email: "server@example.com",
+      instituteId: "inst-999",
+    });
+
+    const docRef = "user-123_2026-05-25";
+    const collectionRef = { doc: jest.fn(() => docRef) };
+
+    const dbStore = new Map();
+    const transactionSet = jest.fn();
+
+    // High-fidelity OCC Simulation:
+    // If two requests read concurrently, both see 'exists === false'.
+    // One succeeds, writes to the dbStore.
+    // The second transaction will detect that the store has been updated since its read phase,
+    // abort, retry, read again, see 'exists === true', and return without writing.
+    const runTransaction = jest.fn(async (callback) => {
+      let attempts = 0;
+      while (attempts < 5) {
+        attempts++;
+        // Interleave the operations with a small async tick
+        await new Promise((resolve) => setTimeout(resolve, 5));
+
+        const get = async (ref) => ({ exists: dbStore.has(ref) });
+
+        let pendingWrite = null;
+        const set = (ref, data) => {
+          pendingWrite = { ref, data };
+        };
+
+        await callback({ get, set });
+
+        if (pendingWrite) {
+          if (dbStore.has(pendingWrite.ref)) {
+            // Collision detected - retry callback!
+            continue;
+          }
+          // Successful transaction commit
+          dbStore.set(pendingWrite.ref, pendingWrite.data);
+          transactionSet(pendingWrite.ref, pendingWrite.data);
+        }
+        break;
+      }
+    });
+
+    getFirestore.mockReturnValue({
+      runTransaction,
+      collection: jest.fn(() => collectionRef),
+    });
+
+    // Execute double-click / rapid concurrent requests in parallel
+    const [response1, response2] = await Promise.all([
+      POST({
+        headers: new Headers([["authorization", "Bearer test"]]),
+        cookies: { get: jest.fn() },
+      }),
+      POST({
+        headers: new Headers([["authorization", "Bearer test"]]),
+        cookies: { get: jest.fn() },
+      }),
+    ]);
+
+    // One of the concurrent requests must succeed and create (201), the other should return alreadyRecorded (200)
+    const statusCodes = [response1.status, response2.status].sort();
+    expect(statusCodes).toEqual([200, 201]);
+
+    const resJson1 = await response1.json();
+    const resJson2 = await response2.json();
+
+    const results = [resJson1.data.alreadyRecorded, resJson2.data.alreadyRecorded].sort();
+    expect(results).toEqual([false, true]);
+
+    // Firestore must have exactly 1 record committed
+    expect(dbStore.size).toBe(1);
+    expect(dbStore.has(docRef)).toBe(true);
+    expect(transactionSet).toHaveBeenCalledTimes(1);
+  });
 });
