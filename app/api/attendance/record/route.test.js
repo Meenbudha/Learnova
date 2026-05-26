@@ -14,6 +14,10 @@ jest.mock("@/lib/firebase-admin", () => ({
   getUserProfile: jest.fn(),
 }));
 
+jest.mock("@/lib/gamification-service", () => ({
+  awardXp: jest.fn(),
+}));
+
 jest.mock("firebase-admin/firestore", () => ({
   getFirestore: jest.fn(),
   FieldValue: {
@@ -35,7 +39,7 @@ describe("attendance record route", () => {
     jest.clearAllMocks();
   });
 
-  test("writes attendance to Firestore with canonical doc id + instituteId", async () => {
+  test("writes attendance to Firestore with canonical doc id + instituteId using transaction", async () => {
     authenticateRequest.mockResolvedValue({ uid: "user-123" });
     parseJSON.mockResolvedValue({
       userId: "user-123",
@@ -51,11 +55,15 @@ describe("attendance record route", () => {
       instituteId: "inst-999",
     });
 
-    const set = jest.fn().mockResolvedValue(undefined);
-    const docRef = { set };
+    const docRef = {};
     const collectionRef = { doc: jest.fn(() => docRef) };
+    const transactionSet = jest.fn();
+    const transactionGet = jest.fn().mockResolvedValue({ exists: false });
 
     getFirestore.mockReturnValue({
+      runTransaction: jest.fn(async (callback) => {
+        return callback({ get: transactionGet, set: transactionSet });
+      }),
       collection: jest.fn(() => collectionRef),
     });
 
@@ -71,7 +79,9 @@ describe("attendance record route", () => {
     });
 
     expect(collectionRef.doc).toHaveBeenCalledWith("user-123_2026-05-25");
-    expect(set).toHaveBeenCalledWith(
+    expect(transactionGet).toHaveBeenCalledWith(docRef);
+    expect(transactionSet).toHaveBeenCalledWith(
+      docRef,
       expect.objectContaining({
         userId: "user-123",
         studentName: "Server Name",
@@ -86,5 +96,48 @@ describe("attendance record route", () => {
       { merge: true },
     );
   });
-});
 
+  test("prevents duplicate check-in if document already exists", async () => {
+    authenticateRequest.mockResolvedValue({ uid: "user-123" });
+    parseJSON.mockResolvedValue({
+      userId: "user-123",
+      studentName: "Client Name",
+      email: "client@example.com",
+      confidenceScore: 80,
+      date: "2026-05-25",
+    });
+
+    getUserProfile.mockResolvedValue({
+      fullName: "Server Name",
+      email: "server@example.com",
+      instituteId: "inst-999",
+    });
+
+    const docRef = {};
+    const collectionRef = { doc: jest.fn(() => docRef) };
+    const transactionSet = jest.fn();
+    const transactionGet = jest.fn().mockResolvedValue({ exists: true });
+
+    getFirestore.mockReturnValue({
+      runTransaction: jest.fn(async (callback) => {
+        return callback({ get: transactionGet, set: transactionSet });
+      }),
+      collection: jest.fn(() => collectionRef),
+    });
+
+    const response = await POST({
+      headers: new Headers([["authorization", "Bearer test"]]),
+      cookies: { get: jest.fn() },
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      success: true,
+      data: { alreadyRecorded: true },
+    });
+
+    expect(collectionRef.doc).toHaveBeenCalledWith("user-123_2026-05-25");
+    expect(transactionGet).toHaveBeenCalledWith(docRef);
+    expect(transactionSet).not.toHaveBeenCalled();
+  });
+});
