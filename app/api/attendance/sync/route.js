@@ -4,6 +4,7 @@ import { initFirebaseAdmin, getUserProfile } from "@/lib/firebase-admin";
 import { requireAuth } from "@/lib/rbac";
 import { withErrorHandler, parseJSON } from "@/lib/error-handler";
 import { getLocalDateKey } from "@/lib/dateUtils";
+import { awardXp } from "@/lib/gamification-service";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -86,7 +87,8 @@ async function handleSync(request) {
   const instituteId = userProfile?.instituteId || null;
   
   const successfulIds = [];
-  
+  const rejectedIds = [];
+
   // We use a Set to keep track of processed user-dates to prevent duplicate attendance
   // even within the same batch.
   const processedUserDates = new Set();
@@ -104,7 +106,7 @@ async function handleSync(request) {
     // Validate timestamp: must be within the last 48 hours and not in the future (allowing 5 min clock skew)
     if (record.queuedAt > now + 5 * 60 * 1000 || record.queuedAt < now - MAX_OFFLINE_WINDOW_MS) {
       console.warn(`User ${decodedToken.uid} attempted to sync record with invalid queuedAt timestamp ${record.queuedAt}`);
-      successfulIds.push(record.id); // Acknowledge to clear from client DB and prevent endless retry loop
+      rejectedIds.push(record.id);
       continue;
     }
 
@@ -165,11 +167,23 @@ async function handleSync(request) {
 
     successfulIds.push(record.id);
     processedUserDates.add(userDateKey);
+
+    try {
+      await awardXp(decodedToken.uid, "attendance_marked", {
+        attendanceHour: record.queuedAt ? new Date(record.queuedAt).getHours() : new Date().getHours(),
+      });
+    } catch (error) {
+      console.error(`Failed to award XP for offline-synced record (${decodedToken.uid}_${recordDate}):`, error);
+    }
   }
 
   return NextResponse.json({
     success: true,
     syncedIds: successfulIds,
+    rejectedIds,
+    ...(rejectedIds.length > 0 && {
+      warning: "Some records were not synced because they exceeded the 48-hour offline window. These records have been removed from your local queue.",
+    }),
   });
 }
 

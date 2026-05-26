@@ -79,8 +79,8 @@ export const POST = withErrorHandler(async (request) => {
     await awardXp(userId, "attendance_marked", {
       attendanceHour: new Date().getHours(),
     });
-  } catch (_) {
-    // Silently swallow — attendance record is already saved
+  } catch (error) {
+    console.error("Failed to award XP after attendance:", error);
   }
 
   return jsonSuccess({ alreadyRecorded: false }, 201);

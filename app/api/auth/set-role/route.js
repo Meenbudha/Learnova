@@ -11,7 +11,21 @@ export const POST = withValidation(
   withErrorHandler(async (request, data) => {
     const decodedToken = await authenticateRequest(request);
 
-    const { role, fullName, instituteName } = data;
+    const { role, fullName, instituteName, inviteCode } = data;
+
+    // --- Privilege Escalation Fix: Enforce Invite Codes for Elevated Roles ---
+    if (role === "teacher") {
+      const expectedCode = process.env.TEACHER_INVITE_CODE;
+      if (!expectedCode || inviteCode !== expectedCode) {
+        return jsonError("Forbidden: Invalid or missing teacher invite code.", 403);
+      }
+    } else if (role === "institute") {
+      const expectedCode = process.env.INSTITUTE_INVITE_CODE;
+      if (!expectedCode || inviteCode !== expectedCode) {
+        return jsonError("Forbidden: Invalid or missing institute invite code.", 403);
+      }
+    }
+    // ------------------------------------------------------------------------
 
     initializeFirebase();
     const db = admin.firestore();
