@@ -556,6 +556,44 @@ const TeacherDashboard = () => {
     toast.success("Passcode copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
+  const handleExportCSV = () => {
+    if (!studentAttendanceData || studentAttendanceData.length === 0) {
+      toast.error("No attendance records found to export.");
+      return;
+    }
+
+  const headers = ["Student ID", "Student Name", "Date", "Attendance Status"];
+  const todayDate = new Date().toISOString().slice(0, 10);
+
+  const csvRows = studentAttendanceData.map((student) => {
+    const studentId = student.rollNo || student.id || "N/A";
+    const studentName = student.name || "Unknown";
+    const status = student.status || "absent";
+    
+    return [
+      `"${studentId}"`,
+      `"${studentName.replace(/"/g, '""')}"`, 
+      `"${todayDate}"`,
+      `"${status.toUpperCase()}"`
+    ].join(",");
+  });
+
+  const csvContent = [headers.join(","), ...csvRows].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const fileName = `attendance_report_${todayDate}.csv`;
+
+  const link = document.createElement("a");
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(`Exported data successfully to ${fileName}`);
+  }
+};
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -872,16 +910,17 @@ const TeacherDashboard = () => {
                 </div>
               </button>
 
-              <button className="w-full bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 border border-blue-500/30 text-white p-3 rounded-xl transition-colors text-left">
+              <button 
+                onClick={handleExportCSV}
+                className="w-full bg-gradient-to-r from-purple-600/20 to-blue-600/20 hover:from-purple-600/30 hover:to-blue-600/30 border border-purple-500/30 text-white p-3 rounded-xl transition-colors text-left"
+              >
                 <div className="flex items-center space-x-3">
-                  <BarChart3 className="w-5 h-5 text-blue-400" />
+                  <Download className="w-5 h-5 text-purple-400" />
                   <div>
-                    <div className="font-medium">View Analytics</div>
-                    <div className="text-sm text-gray-400">
-                      Detailed insights
-                    </div>
-                  </div>
-                </div>
+                    <div className="font-medium">Export Reports</div>
+                    <div className="text-sm text-gray-400">CSV format (Instant Download)</div>
+                 </div>
+               </div>
               </button>
             </div>
           </div>
@@ -1121,7 +1160,10 @@ const TeacherDashboard = () => {
                     Generate Passcode
                   </button>
                 )}
-                <button className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2">
+                <button 
+                  onClick={handleExportCSV}
+                  className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2"
+                >
                   <Download className="w-3 h-3" />
                   Export Data
                 </button>
