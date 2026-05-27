@@ -114,9 +114,20 @@ export async function recordAttendance({
   });
 
   if (!response.ok) {
-    throw new Error(
-      "Failed to record attendance securely on the server."
-    );
+    let errorMessage =
+      "Failed to record attendance securely on the server.";
+
+    try {
+      const errorData = await response.json();
+
+      if (errorData?.message) {
+        errorMessage = errorData.message;
+      }
+    } catch {
+    // Ignore invalid JSON responses
+    }
+
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
