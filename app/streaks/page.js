@@ -64,10 +64,7 @@ export default function StreaksPage() {
     loadStreakData();
   }, [userProfile]);
 
-  useEffect(() => {
-    document.title = "Consistency Streaks | Learnova";
-  }, []);
-
+ 
   const triggerToast = (msg) => {
     setNotificationMsg(msg);
     setShowNotification(true);
