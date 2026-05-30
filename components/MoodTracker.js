@@ -1,5 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Smile, Headphones, Moon, AlertCircle, Wind } from "lucide-react";
+import { safeLocalStorageGet, safeLocalStorageSet } from "@/lib/storage";
+import { normalizeMoodHistory, normalizeMoodKey } from "@/lib/wellnessStorage";
+
 const moodColors = {
   happy: "bright and energized",
   calm: "steady and centered",
@@ -7,10 +13,6 @@ const moodColors = {
   stressed: "tense and ready for reset",
   overwhelmed: "loaded and in need of space",
 };
-
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { Smile, Headphones, Moon, AlertCircle, Wind } from "lucide-react";
 
 const moods = [
   {
@@ -60,32 +62,34 @@ const moods = [
   },
 ];
 
+const moodKeys = moods.map((mood) => mood.key);
+
 export default function MoodTracker() {
   const [activeMood, setActiveMood] = useState("happy");
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const savedMood = window.localStorage.getItem("learnova-wellness-mood");
-    const savedHistory = window.localStorage.getItem("learnova-wellness-mood-history");
-    if (savedMood) setActiveMood(savedMood);
-    if (savedHistory) {
-      try {
-        setHistory(JSON.parse(savedHistory));
-      } catch (error) {
-        setHistory([]);
-      }
-    }
+    const savedMood = safeLocalStorageGet("learnova-wellness-mood", "happy");
+    const savedHistory = safeLocalStorageGet("learnova-wellness-mood-history", []);
+
+    setActiveMood(normalizeMoodKey(savedMood, moodKeys));
+    setHistory(normalizeMoodHistory(savedHistory, moodKeys));
   }, []);
 
   const handleMoodSelect = (key) => {
-    setActiveMood(key);
+    const nextMood = normalizeMoodKey(key, moodKeys);
     const timestamp = new Date().toISOString();
-    const nextHistory = [{ key, timestamp }, ...history].slice(0, 6);
+    const nextHistory = [
+      { key: nextMood, timestamp },
+      ...normalizeMoodHistory(history, moodKeys),
+    ].slice(0, 6);
+
+    setActiveMood(nextMood);
     setHistory(nextHistory);
     if (typeof window !== "undefined") {
-      window.localStorage.setItem("learnova-wellness-mood", key);
-      window.localStorage.setItem("learnova-wellness-mood-history", JSON.stringify(nextHistory));
+      safeLocalStorageSet("learnova-wellness-mood", nextMood);
+      safeLocalStorageSet("learnova-wellness-mood-history", nextHistory);
     }
   };
 

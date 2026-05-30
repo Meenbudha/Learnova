@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Plus, CheckCircle2, Trash2 } from "lucide-react";
+import { safeLocalStorageGet, safeLocalStorageSet } from "@/lib/storage";
+import { normalizeDailyGoals } from "@/lib/wellnessStorage";
 
 export default function DailyGoals() {
   const [goals, setGoals] = useState([]);
@@ -9,17 +11,13 @@ export default function DailyGoals() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const saved = window.localStorage.getItem("learnova-wellness-goals");
-      if (saved) setGoals(JSON.parse(saved));
-    } catch (error) {
-      setGoals([]);
-    }
+    const savedGoals = safeLocalStorageGet("learnova-wellness-goals", []);
+    setGoals(normalizeDailyGoals(savedGoals));
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem("learnova-wellness-goals", JSON.stringify(goals));
+    safeLocalStorageSet("learnova-wellness-goals", goals);
   }, [goals]);
 
   const addGoal = () => {

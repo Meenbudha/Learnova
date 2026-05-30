@@ -2,23 +2,44 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Droplet, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { safeLocalStorageGet, safeLocalStorageSet } from "@/lib/storage";
+import {
+  DEFAULT_WATER_GLASSES,
+  WELLNESS_WATER_GOAL,
+  normalizeWaterGlasses,
+} from "@/lib/wellnessStorage";
 
 export default function WaterTracker() {
-  const [glasses, setGlasses] = useState(3);
-  const goal = 8;
+  const [glasses, setGlasses] = useState(DEFAULT_WATER_GLASSES);
+  const goal = WELLNESS_WATER_GOAL;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const saved = window.localStorage.getItem("learnova-wellness-water");
-    if (saved) setGlasses(Number(saved));
-  }, []);
+    const saved = safeLocalStorageGet("learnova-wellness-water", DEFAULT_WATER_GLASSES);
+    setGlasses(normalizeWaterGlasses(saved, DEFAULT_WATER_GLASSES, goal));
+  }, [goal]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem("learnova-wellness-water", String(glasses));
-  }, [glasses]);
+    safeLocalStorageSet(
+      "learnova-wellness-water",
+      normalizeWaterGlasses(glasses, DEFAULT_WATER_GLASSES, goal),
+    );
+  }, [glasses, goal]);
 
   const progress = useMemo(() => Math.min((glasses / goal) * 100, 100), [glasses, goal]);
+
+  const addWater = () => {
+    setGlasses((value) =>
+      Math.min(normalizeWaterGlasses(value, DEFAULT_WATER_GLASSES, goal) + 1, goal),
+    );
+  };
+
+  const removeWater = () => {
+    setGlasses((value) =>
+      Math.max(normalizeWaterGlasses(value, DEFAULT_WATER_GLASSES, goal) - 1, 0),
+    );
+  };
 
   return (
     <section className="rounded-[2rem] border border-white/10 bg-white/85 dark:bg-slate-950/80 dark:border-slate-700 shadow-2xl shadow-slate-950/20 backdrop-blur-xl p-6 lg:p-8">
@@ -58,14 +79,14 @@ export default function WaterTracker() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <button
             type="button"
-            onClick={() => setGlasses((value) => Math.min(value + 1, goal))}
+            onClick={addWater}
             className="flex items-center justify-center gap-2 rounded-3xl bg-slate-900 text-white px-4 py-3 text-sm font-semibold transition hover:bg-slate-800"
           >
             <ArrowUpRight className="h-4 w-4" /> Add Water
           </button>
           <button
             type="button"
-            onClick={() => setGlasses((value) => Math.max(value - 1, 0))}
+            onClick={removeWater}
             className="flex items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-100"
           >
             <ArrowDownRight className="h-4 w-4" /> Remove Glass
