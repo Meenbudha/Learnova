@@ -29,7 +29,7 @@ export default function CourseDetailPage() {
   const validationCheck = routeParamSchema.safeParse({ id: params.id });
   
   if (!validationCheck.success) {
-    return notFound(); // Gracesfully triggers Next.js 404 handler interface instead of crashing client UI
+    notFound();
   }
 
   const [mounted, setMounted] = useState(false);
@@ -41,6 +41,7 @@ export default function CourseDetailPage() {
   const [backText, setBackText] = useState("");
   const [originText, setOriginText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [lastProgress, setLastProgress] = useState(null);
 
   // --- AI TIMELINE FEATURE STATES ---
   const videoRef = useRef(null);
@@ -68,9 +69,37 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     setMounted(true);
+    
+    // Load progress from localStorage
+    try {
+      const saved = localStorage.getItem("learnova_continue_learning");
+      if (saved) {
+        const allProgress = JSON.parse(saved);
+        if (allProgress[params.id]) {
+          setLastProgress(allProgress[params.id]);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load progress:", e);
+    }
   }, []);
 
-  
+  const saveProgress = (lesson, moduleTitle) => {
+    const progressData = {
+      lessonTitle: lesson.title,
+      moduleTitle: moduleTitle,
+      timestamp: Date.now()
+    };
+    setLastProgress(progressData);
+    
+    try {
+      const saved = localStorage.getItem("learnova_continue_learning");
+      const allProgress = saved ? JSON.parse(saved) : {};
+      allProgress[params.id] = progressData;
+      localStorage.setItem("learnova_continue_learning", JSON.stringify(allProgress));
+    } catch (e) { console.error(e); }
+  };
+
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredTimestamps([]);
@@ -185,11 +214,32 @@ export default function CourseDetailPage() {
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-zinc-50 via-zinc-100 to-zinc-400 mb-6 leading-tight">
             {course.title}
           </h1>
+
+          {/* 🎯 RESUME LEARNING BANNER 🎯 */}
+          {lastProgress && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 p-5 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest block mb-0.5">Resume your last lesson</span>
+                  <h3 className="text-sm font-bold text-zinc-100">{lastProgress.lessonTitle} <span className="text-zinc-500 font-normal ml-2">in {lastProgress.moduleTitle}</span></h3>
+                </div>
+              </div>
+              <button onClick={() => toast.success("Returning to your last spot...")} className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-600/20">Resume Learning</button>
+            </motion.div>
+          )}
+
           {/* 2. Outer Layout Splitter Wrapper */}
-          <div className={`flex flex-col ${isPodActive ? "lg:flex-row gap-6 items-start" : "w-full"}`}></div>
+          <div className={`flex flex-col ${isPodActive ? "lg:flex-row gap-6 items-start" : "w-full"}`}>
             
             {/* 3. Left Side Content Area */}
-            <div className={`transition-all duration-300 ${isPodActive ? "w-full lg:flex-1" : "w-full"}`}></div>
+            <div className={`transition-all duration-300 ${isPodActive ? "w-full lg:flex-1" : "w-full"}`}>
           {/* 🌟 AI INTERACTIVE TIMELINE INTERFACE 🌟 */}
           <div className="my-8 p-6 rounded-2xl border border-zinc-800 bg-zinc-900/30 shadow-xl">
             {/* The Video Stream */}
@@ -312,8 +362,12 @@ export default function CourseDetailPage() {
                   <div className="divide-y divide-zinc-800/30">
                     {mod.lessons.map((lesson, lIdx) => (
                       <div 
-                        key={lIdx} 
-                        className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-zinc-900/30 transition-colors duration-150"
+                        key={lIdx}
+                        onClick={() => {
+                          saveProgress(lesson, mod.title);
+                          toast.success(`Viewing: ${lesson.title}`);
+                        }}
+                        className="px-6 py-4 flex items-center justify-between gap-4 hover:bg-zinc-900/30 transition-colors duration-150 cursor-pointer group/lesson"
                       >
                         <div className="flex items-center gap-3">
                           {lesson.completed ? (
@@ -321,7 +375,7 @@ export default function CourseDetailPage() {
                           ) : (
                             <PlayCircle className="w-5 h-5 text-zinc-500 shrink-0" />
                           )}
-                          <span className={`text-sm ${lesson.completed ? "text-zinc-400 line-through" : "text-zinc-300"}`}>
+                          <span className={`text-sm transition-colors ${lesson.completed ? "text-zinc-400 line-through" : "text-zinc-300 group-hover/lesson:text-indigo-400"}`}>
                             {lesson.title}
                           </span>
                         </div>
@@ -335,6 +389,7 @@ export default function CourseDetailPage() {
               ))}
             </div>
           </section>
+            </div>
             {/* 5. Right Side Collaborative Live Workspace Panel */}
             {isPodActive && (
               <div className="w-full lg:w-[400px] lg:sticky lg:top-24 border border-zinc-800 bg-zinc-900/60 rounded-2xl overflow-hidden h-[calc(100vh-140px)] flex flex-col backdrop-blur-md shadow-2xl z-20 p-4">
@@ -360,6 +415,8 @@ export default function CourseDetailPage() {
                 />
               </div>
             )}
+          </div>
+
 
           {/* Study / Flashcards */}
           <section className="mb-8">
