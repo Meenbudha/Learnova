@@ -158,8 +158,8 @@ function FAQAccordionItem({ question, answer, isOpen, onToggle }) {
         className="w-full flex justify-between items-center p-5 md:p-6 text-left font-semibold text-black dark:text-zinc-200 hover:text-purple-600 dark:hover:text-purple-400 transition-colors focus:outline-none"
       >
         <span className="text-sm md:text-base leading-relaxed">{question}</span>
-        <ChevronDown 
-          className={`w-5 h-5 text-purple-500 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} 
+        <ChevronDown
+          className={`w-5 h-5 text-purple-500 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
       <AnimatePresence initial={false}>
@@ -199,7 +199,7 @@ export default function Page() {
     <>
       <Navbar />
       <div className="min-h-screen bg-background text-foreground selection:bg-purple-500/30">
-        
+
         {/* Premium Academic Performance Metrics */}
         <section
           id="stats"
@@ -207,7 +207,7 @@ export default function Page() {
         >
           <div className="max-w-7xl mx-auto relative">
             <div className="grid lg:grid-cols-12 gap-16 items-center">
-              
+
               {/* Left Column: Contextual Messaging */}
               <Reveal className="lg:col-span-5 space-y-6">
                 <SectionBadge
@@ -234,39 +234,39 @@ export default function Page() {
 
               {/* Right Column: High-Fidelity Orbital Interactive Diagrams */}
               <Reveal className="lg:col-span-7 flex flex-col md:flex-row items-center justify-center gap-12" delay={0.1}>
-                
+
                 {/* Concentric Interactive Rings Diagram Container */}
                 <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center bg-black/5 dark:bg-white/[0.02] rounded-full border border-gray-200/50 dark:border-white/5 backdrop-blur-sm shadow-inner">
-                  
+
                   {/* Outer Orbital Layer - Ring 3 */}
-                  <div 
+                  <div
                     onMouseEnter={() => setHoveredRing(0)}
                     onMouseLeave={() => setHoveredRing(null)}
                     className={`absolute rounded-full border-2 border-dashed transition-all duration-700 cursor-pointer flex items-center justify-center
-                      ${hoveredRing === 0 
-                        ? "w-[95%] h-[95%] border-purple-500 bg-purple-500/[0.02] scale-105 rotate-45" 
+                      ${hoveredRing === 0
+                        ? "w-[95%] h-[95%] border-purple-500 bg-purple-500/[0.02] scale-105 rotate-45"
                         : "w-[90%] h-[90%] border-purple-500/20 dark:border-purple-500/10"
                       }`}
                   />
 
                   {/* Middle Orbital Layer - Ring 2 */}
-                  <div 
+                  <div
                     onMouseEnter={() => setHoveredRing(1)}
                     onMouseLeave={() => setHoveredRing(null)}
                     className={`absolute rounded-full border border-double transition-all duration-700 cursor-pointer flex items-center justify-center
-                      ${hoveredRing === 1 
-                        ? "w-[75%] h-[75%] border-blue-400 bg-blue-500/[0.02] -rotate-45" 
+                      ${hoveredRing === 1
+                        ? "w-[75%] h-[75%] border-blue-400 bg-blue-500/[0.02] -rotate-45"
                         : "w-[70%] h-[70%] border-blue-500/20 dark:border-blue-500/10"
                       }`}
                   />
 
                   {/* Inner Orbital Layer - Ring 1 */}
-                  <div 
+                  <div
                     onMouseEnter={() => setHoveredRing(2)}
                     onMouseLeave={() => setHoveredRing(null)}
                     className={`absolute rounded-full border transition-all duration-700 cursor-pointer flex items-center justify-center
-                      ${hoveredRing === 2 
-                        ? "w-[55%] h-[55%] border-emerald-400 bg-emerald-500/[0.02] scale-95" 
+                      ${hoveredRing === 2
+                        ? "w-[55%] h-[55%] border-emerald-400 bg-emerald-500/[0.02] scale-95"
                         : "w-[50%] h-[50%] border-emerald-500/20 dark:border-emerald-500/10"
                       }`}
                   />
@@ -291,8 +291,8 @@ export default function Page() {
                         onMouseEnter={() => setHoveredRing(idx)}
                         onMouseLeave={() => setHoveredRing(null)}
                         className={`group block p-4 rounded-2xl border transition-all duration-500 cursor-pointer
-                          ${isSelected 
-                            ? "bg-purple-950/20 border-purple-500/40 translate-x-2 shadow-lg shadow-purple-500/5" 
+                          ${isSelected
+                            ? "bg-purple-950/20 border-purple-500/40 translate-x-2 shadow-lg shadow-purple-500/5"
                             : "bg-white/[0.02] dark:bg-black/20 border-white/5 hover:border-white/10 hover:bg-white/[0.04]"
                           }`}
                       >
@@ -302,10 +302,10 @@ export default function Page() {
                               <IconComponent className="w-5 h-5" />
                             </div>
                             <div className="flex-1">
-                              <div className="text-2xl font-black text-white transition-colors duration-300 group-hover:text-purple-400">
+                              <div className="text-2xl font-black text-black dark:text-white transition-colors duration-300 group-hover:text-purple-500 dark:group-hover:text-purple-400">
                                 <AnimatedCounter to={stat.number} suffix={stat.suffix} />
                               </div>
-                              <p className="text-xs font-semibold text-gray-300 mt-0.5 flex items-center gap-1 group-hover:text-white transition-colors">
+                              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-0.5 flex items-center gap-1 group-hover:text-black dark:group-hover:text-white transition-colors">
                                 {stat.label}
                                 <ArrowRight className="w-3.5 h-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 text-purple-400" />
                               </p>
@@ -317,10 +317,10 @@ export default function Page() {
                               <IconComponent className="w-5 h-5" />
                             </div>
                             <div className="flex-1">
-                              <div className="text-2xl font-black text-white">
+                              <div className="text-2xl font-black text-black dark:text-white">
                                 <AnimatedCounter to={stat.number} suffix={stat.suffix} />
                               </div>
-                              <p className="text-xs font-semibold text-gray-300 mt-0.5">
+                              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-0.5">
                                 {stat.label}
                               </p>
                             </div>
@@ -380,7 +380,7 @@ export default function Page() {
         {/* --- ROLE-BASED TAILORED WORKFLOWS --- */}
         <section id="roles" className="py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid lg:grid-cols-12 gap-12 items-center">
-            
+
             <Reveal className="lg:col-span-5 space-y-6">
               <SectionBadge
                 icon={GraduationCap}
