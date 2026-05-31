@@ -3,7 +3,7 @@
     "username": "Premshaw23",
     "name": "Prem Shaw",
     "admin": true,
-    "contributions": 1208
+    "contributions": 1210
   },
   {
     "username": "Prateek2007-cmd",
@@ -42,11 +42,11 @@
     "contributions": 31
   },
   {
-    "username": "sricharan-213",
+    "username": "Pratyush-Panda-2006",
     "contributions": 27
   },
   {
-    "username": "Pratyush-Panda-2006",
+    "username": "sricharan-213",
     "contributions": 27
   },
   {
@@ -78,15 +78,15 @@
     "contributions": 17
   },
   {
-    "username": "HarshaNaidu11",
-    "contributions": 16
-  },
-  {
     "username": "omnipotentchaos",
     "contributions": 16
   },
   {
-    "username": "DhruvalBhinsara1",
+    "username": "HarshaNaidu11",
+    "contributions": 16
+  },
+  {
+    "username": "paripnj",
     "contributions": 14
   },
   {
@@ -94,7 +94,7 @@
     "contributions": 14
   },
   {
-    "username": "paripnj",
+    "username": "DhruvalBhinsara1",
     "contributions": 14
   },
   {
@@ -118,11 +118,7 @@
     "contributions": 11
   },
   {
-    "username": "advikdivekar",
-    "contributions": 10
-  },
-  {
-    "username": "NiranjanDoijode23",
+    "username": "thevaibhavtyagi",
     "contributions": 10
   },
   {
@@ -130,16 +126,24 @@
     "contributions": 10
   },
   {
-    "username": "thevaibhavtyagi",
+    "username": "NiranjanDoijode23",
     "contributions": 10
+  },
+  {
+    "username": "advikdivekar",
+    "contributions": 10
+  },
+  {
+    "username": "yuvraj-k-singh",
+    "contributions": 9
   },
   {
     "username": "vaishnavijha12",
     "contributions": 9
   },
   {
-    "username": "yuvraj-k-singh",
-    "contributions": 9
+    "username": "anshika1179",
+    "contributions": 8
   },
   {
     "username": "suhaniiz",
@@ -152,6 +156,10 @@
   {
     "username": "nimkarprachi17",
     "contributions": 8
+  },
+  {
+    "username": "vedant7007",
+    "contributions": 7
   },
   {
     "username": "anshul23102",
@@ -182,10 +190,6 @@
     "contributions": 7
   },
   {
-    "username": "anshika1179",
-    "contributions": 7
-  },
-  {
     "username": "akashgoudsidduluri",
     "contributions": 6
   },
@@ -210,11 +214,7 @@
     "contributions": 6
   },
   {
-    "username": "dynamo-pentester",
-    "contributions": 5
-  },
-  {
-    "username": "pericharlabindhumadhavi-data",
+    "username": "udaycodespace",
     "contributions": 5
   },
   {
@@ -222,7 +222,11 @@
     "contributions": 5
   },
   {
-    "username": "udaycodespace",
+    "username": "dynamo-pentester",
+    "contributions": 5
+  },
+  {
+    "username": "pericharlabindhumadhavi-data",
     "contributions": 5
   },
   {
@@ -234,27 +238,15 @@
     "contributions": 5
   },
   {
-    "username": "tanishksinha",
-    "contributions": 5
-  },
-  {
     "username": "Chakshu-Bamotra",
     "contributions": 5
   },
   {
-    "username": "vedant7007",
-    "contributions": 4
+    "username": "tanishksinha",
+    "contributions": 5
   },
   {
-    "username": "riddhimagupta2",
-    "contributions": 4
-  },
-  {
-    "username": "Copilot",
-    "contributions": 4
-  },
-  {
-    "username": "priyanshi-coder-2",
+    "username": "ishitaajain22-tech",
     "contributions": 4
   },
   {
@@ -262,47 +254,23 @@
     "contributions": 4
   },
   {
-    "username": "ishitaajain22-tech",
-    "contributions": 4
-  },
-  {
     "username": "anujsharma8d",
     "contributions": 4
   },
   {
-    "username": "surya0904shankar",
-    "contributions": 3
+    "username": "priyanshi-coder-2",
+    "contributions": 4
   },
   {
-    "username": "shauryaparth1902-blip",
-    "contributions": 3
+    "username": "Copilot",
+    "contributions": 4
   },
   {
-    "username": "pracheyyy",
-    "contributions": 3
+    "username": "riddhimagupta2",
+    "contributions": 4
   },
   {
-    "username": "Rajal-ui",
-    "contributions": 3
-  },
-  {
-    "username": "Hiral-Barot",
-    "contributions": 3
-  },
-  {
-    "username": "Ayushia5",
-    "contributions": 3
-  },
-  {
-    "username": "tanishrajh",
-    "contributions": 3
-  },
-  {
-    "username": "shruti-codes-design",
-    "contributions": 3
-  },
-  {
-    "username": "ash1shkumar",
+    "username": "adityack477",
     "contributions": 3
   },
   {
@@ -310,7 +278,39 @@
     "contributions": 3
   },
   {
-    "username": "adityack477",
+    "username": "ash1shkumar",
+    "contributions": 3
+  },
+  {
+    "username": "shruti-codes-design",
+    "contributions": 3
+  },
+  {
+    "username": "tanishrajh",
+    "contributions": 3
+  },
+  {
+    "username": "Ayushia5",
+    "contributions": 3
+  },
+  {
+    "username": "Hiral-Barot",
+    "contributions": 3
+  },
+  {
+    "username": "Rajal-ui",
+    "contributions": 3
+  },
+  {
+    "username": "pracheyyy",
+    "contributions": 3
+  },
+  {
+    "username": "shauryaparth1902-blip",
+    "contributions": 3
+  },
+  {
+    "username": "surya0904shankar",
     "contributions": 3
   },
   {
