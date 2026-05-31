@@ -13,6 +13,20 @@ import { getTodayKeyLocal } from "@/lib/dateUtils";
 import { getUserActivities } from "@/services/activityService";
 import { apiFetch } from "@/lib/apiClient";
 
+const isRecord = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+const unwrapApiPayload = (payload) => {
+  if (
+    isRecord(payload) &&
+    payload.success === true &&
+    Object.prototype.hasOwnProperty.call(payload, "data")
+  ) {
+    return payload.data;
+  }
+
+  return payload;
+};
 
 export const useAttendance = ({ role, user }) => {
   const [loading, setLoading] = useState(true);
@@ -71,10 +85,7 @@ export const useAttendance = ({ role, user }) => {
         headers: { Authorization: `Bearer ${token}` },
         signal: controller.signal,
       });
-      if (res.ok) {
-        const data = await res.json();
-        setGamificationData(data);
-      }
+      setGamificationData(unwrapApiPayload(res));
     } catch (err) {
       if (err.name !== "AbortError") {
         console.error("Failed to load gamification data", err);
@@ -140,16 +151,17 @@ export const useAttendance = ({ role, user }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!mounted) return;
-      if (res.ok) {
-        const data = await res.json();
-        if (data.dashboardData) setDashboardData(data.dashboardData);
-        if (data.classes) setClasses(data.classes);
-        if (data.teachers) setTeachers(data.teachers);
-        if (data.attendanceRequests)
-          setAttendanceRequests(data.attendanceRequests);
-      } else {
-        setError("Failed to fetch institute data. Please try again.");
+      const data = unwrapApiPayload(res);
+
+      if (!isRecord(data)) {
+        throw new Error("Invalid institute stats response");
       }
+
+      if (data.dashboardData) setDashboardData(data.dashboardData);
+      if (data.classes) setClasses(data.classes);
+      if (data.teachers) setTeachers(data.teachers);
+      if (data.attendanceRequests)
+        setAttendanceRequests(data.attendanceRequests);
     } catch (err) {
       if (mounted) {
         setError(
